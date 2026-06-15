@@ -1,0 +1,150 @@
+# PF1.5 Discovery Veil Roadmap
+
+This module combines two related workflows:
+
+- Perception-gated discovery of hidden enemies.
+- Spellcraft-gated identification of non-player spellcasting.
+
+Both workflows should use a shared discovery-gate architecture where possible, but each milestone must remain independently testable.
+
+## Naming
+
+Folder/module id: `pf15-discovery-veil`
+
+Human-facing title: `PF1.5 Discovery Veil`
+
+Reasoning: the module is not only "skills reveal things"; it creates a veil between what the GM knows, what a player has personally detected, and what the party has globally revealed.
+
+## Design Principles
+
+- GM secrets stay on the active GM client.
+- Player-facing state may say that a gate exists, who has succeeded, and whether something is globally revealed.
+- Player-facing state must not contain hidden DCs, hidden token identities, hidden spell names, spell descriptions, caster plans, or GM notes.
+- Personal reveal is a soft presentation layer, not anti-cheat secrecy.
+- Global reveal remains a manual GM action unless a later spec explicitly changes that.
+- One successful player/PC does not automatically reveal globally. The GM decides when the party has communicated enough to reveal.
+- Build Perception first; it is lower risk than spell-card interception.
+
+## Milestone 0.1.0 - Scaffold
+
+Status: scaffolded.
+
+Goals:
+
+- Foundry manifest.
+- ESM entrypoint.
+- Settings registration.
+- Public registry placeholder.
+- Client-scope private store placeholder.
+- Roadmap, goals, security notes, and Claude handoff.
+
+Non-goals:
+
+- No token hiding.
+- No spell masking.
+- No roll prompts.
+- No actor reads.
+- No chat interception.
+
+## Milestone 0.2.0 - Perception Gate MVP
+
+Goal: allow the GM to mark a token as personally undetected, then reveal it only to players/PCs who have succeeded at Perception.
+
+Expected features:
+
+- GM-only token HUD control: mark/unmark "Undetected".
+- Public registry entry keyed by `sceneId:tokenId`.
+- Personal spotted map keyed by user id or actor id; exact keying must be decided before implementation.
+- GM always sees true token.
+- Unsuccessful players do not see the token through module-controlled presentation surfaces.
+- Successful players see the token personally.
+- GM control to reveal globally.
+
+Required probes:
+
+- Token canvas draw/refresh hooks in Foundry 13.350.
+- Combat tracker row visibility and rendering.
+- Whether hiding the canvas token presentation-only is sufficient for the intended table workflow.
+- Whether Foundry hidden tokens should be used as the authoritative base state.
+
+Acceptance sketch:
+
+- GM marks an enemy undetected.
+- Player A fails Perception and does not see it.
+- Player B succeeds and sees it.
+- GM sees both players' detection status.
+- GM clicks "Reveal Globally"; all players see it.
+
+## Milestone 0.3.0 - Perception Roll Requests
+
+Goal: let the GM request or trigger Perception checks from eligible player characters and record outcomes.
+
+Expected features:
+
+- GM prompt to request Perception from selected/all relevant PCs.
+- Capture PF1 skill roll totals.
+- Compare against hidden GM-side DC.
+- Update personal spotted state on success.
+
+Required probes:
+
+- PF1 Perception skill key and rank path.
+- `actor.rollSkill(skillKey, options)` behavior for player-owned actors.
+- `pf1ActorRollSkill(actor, chatMessage, skillKey)` payload and timing.
+- Socket request flow for player-side rolls, if needed.
+
+## Milestone 0.4.0 - Spellcasting Recon
+
+Goal: characterize PF1 spellcasting chat and hook behavior before any masking is implemented.
+
+Expected probes:
+
+- Does `pf1PreActionUse(actionUse)` reliably identify spell casts before PF1 creates chat output?
+- What fields reveal spell name, spell item id, caster actor, action id, and activation type?
+- Can player-facing spell chat be suppressed/replaced without leaking the original spell card?
+- Does PF1 generate multiple chat messages per spell?
+- What is the Spellcraft skill key and actor rank path? The installed PF1 lang file indicates `PF1.SkillSpl = Spellcraft`, so `spl` is likely, but this still needs live confirmation.
+
+Non-goal:
+
+- Do not implement spell masking until this milestone has a written probe report.
+
+## Milestone 0.5.0 - Spell Identification MVP
+
+Goal: for non-player spellcasting, players initially see a generic casting notice until someone succeeds at Spellcraft.
+
+Expected features:
+
+- Detect non-player spell cast.
+- Prevent full spell details from entering player-visible chat.
+- Post generic player-facing message: "A spell is being cast."
+- Store hidden spell identity/details only on the active GM client.
+- Request Spellcraft from eligible PCs.
+- On success, reveal spell identity/description according to GM-approved rules.
+
+Open design questions:
+
+- Which casters count as "non-player": NPC actors only, hostile disposition, non-owner actors, or GM-configurable?
+- Is the reveal party-wide after one success, or personal until communicated?
+- Does the module reveal only name/school, or the full spell card/description?
+- Should already-public save/damage cards remain public while the spell identity stays masked?
+
+## Milestone 0.6.0 - Shared Discovery UI
+
+Goal: provide a GM panel for active discovery gates.
+
+Expected features:
+
+- Current undetected tokens.
+- Current masked spell casts.
+- Per-player/per-PC success status.
+- Buttons for personal reveal, clear, and global reveal.
+- Debug view of public vs private state without leaking secrets to players.
+
+## Deferred
+
+- True anti-cheat secrecy for scene/token data already delivered to players.
+- Automated tactical rulings beyond "success reveals".
+- Vision/cone/range automation.
+- Automatic global reveal when a player speaks.
+- v14 compatibility claims before a v14 runtime probe.

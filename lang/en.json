@@ -1,0 +1,16 @@
+{
+  "PF15DV.Settings.PerceptionEnabled.Name": "Enable Perception Reveals",
+  "PF15DV.Settings.PerceptionEnabled.Hint": "Enable hidden-creature discovery: GM marks a token undetected; only players who have spotted it (or after a global reveal) can see it.",
+  "PF15DV.Settings.SpellcraftEnabled.Name": "Enable Spellcraft Reveals",
+  "PF15DV.Settings.SpellcraftEnabled.Hint": "Scaffold toggle for future spell-identification masking. No behavior is active yet.",
+  "PF15DV.Settings.DebugLogging.Name": "Discovery Veil Debug Logging",
+  "PF15DV.Settings.DebugLogging.Hint": "Log discovery-gate diagnostics to the browser console.",
+  "PF15DV.Hud.MarkUndetected": "Mark undetected (Discovery Veil)",
+  "PF15DV.Hud.RevealGlobally": "Reveal to all players",
+  "PF15DV.Hud.ClearGate": "Clear discovery gate",
+  "PF15DV.Hud.ManageSpotted": "Manage who has spotted this",
+  "PF15DV.Dialog.SpottedTitle": "Mark Who Has Spotted",
+  "PF15DV.Dialog.SpottedHint": "Check each player who has personally spotted this creature. They will see it; others will not until you reveal globally.",
+  "PF15DV.Dialog.Save": "Save",
+  "PF15DV.Dialog.Cancel": "Cancel"
+}

@@ -1,0 +1,39 @@
+{
+  "id": "pf15-discovery-veil",
+  "title": "PF1.5 Discovery Veil",
+  "description": "Skill-gated discovery for PF1.5: a GM marks creatures undetected; only players who have spotted them (or after a manual global reveal) can see them. Presentation-layer, with GM secrets kept off replicated surfaces. Perception Gate live; Spellcraft identification planned.",
+  "version": "0.2.0",
+  "compatibility": {
+    "minimum": "13.350",
+    "verified": "13.350"
+  },
+  "authors": [
+    {
+      "name": "Dade512"
+    }
+  ],
+  "esmodules": [
+    "scripts/main.mjs"
+  ],
+  "styles": [
+    "styles/discovery-veil.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "systems": [
+      {
+        "id": "pf1",
+        "type": "system",
+        "compatibility": {}
+      }
+    ]
+  },
+  "manifest": "https://raw.githubusercontent.com/Dade512/pf15-discovery-veil/main/module.json",
+  "download": "https://github.com/Dade512/pf15-discovery-veil/archive/refs/tags/v0.2.0.zip"
+}
