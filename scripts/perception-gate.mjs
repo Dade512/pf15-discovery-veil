@@ -16,6 +16,7 @@
 import { MODULE_ID, SETTINGS, CSS } from "./module-constants.mjs";
 import { getPerceptionGate, markUndetected, clearPerceptionGate, setGlobalReveal, markSpotted, unmarkSpotted } from "./state.mjs";
 import { syncPerceptionTokens } from "./rendering.mjs";
+import { openPerceptionRequestDialog } from "./perception-requests.mjs";
 
 /**
  * Resolve a TokenDocument to {sceneId, tokenId} or null.
@@ -65,6 +66,13 @@ export function onRenderTokenHUD(app, element) {
   column.appendChild(spot);
 
   if ( gate.state === "undetected" ) {
+    const request = makeHudButton("fa-dice-d20", game.i18n.localize("PF15DV.Hud.RequestPerception"));
+    request.addEventListener("click", async event => {
+      event.preventDefault(); event.stopPropagation();
+      await openPerceptionRequestDialog(ref); app.render();
+    });
+    column.appendChild(request);
+
     const reveal = makeHudButton("fa-eye", game.i18n.localize("PF15DV.Hud.RevealGlobally"));
     reveal.addEventListener("click", async event => {
       event.preventDefault(); event.stopPropagation();

@@ -13,5 +13,22 @@
   "PF15DV.Dialog.SpottedHint": "Check each player who has personally spotted this creature. They will see it; others will not until you reveal globally.",
   "PF15DV.Dialog.Save": "Save",
   "PF15DV.Dialog.Cancel": "Cancel",
-  "PF15DV.Notify.PriorHiddenRetained": "Discovery gate revealed, but this token stays hidden because you had already hidden it before the gate — its native hidden state was retained."
+  "PF15DV.Notify.PriorHiddenRetained": "Discovery gate revealed, but this token stays hidden because you had already hidden it before the gate — its native hidden state was retained.",
+  "PF15DV.Hud.RequestPerception": "Request a Perception check",
+  "PF15DV.Dialog.RequestTitle": "Request Perception",
+  "PF15DV.Dialog.RequestHint": "Set the hidden DC (kept on your screen only) and choose which players to ask. Each picked player gets a prompt to roll; on a success they will personally spot this creature.",
+  "PF15DV.Dialog.DCLabel": "Hidden Perception DC",
+  "PF15DV.Dialog.RequestSend": "Send Request",
+  "PF15DV.Dialog.RollPromptTitle": "Perception Check",
+  "PF15DV.Dialog.RollPromptBody": "The GM is asking you to roll Perception. Roll now?",
+  "PF15DV.Notify.NoActiveGate": "No active discovery gate on that token — mark it undetected first.",
+  "PF15DV.Notify.NotActiveGM": "Only the active GM can request Perception checks (the hidden DC lives on that client).",
+  "PF15DV.Notify.NoEligiblePlayers": "No eligible players — each needs an assigned, player-owned character.",
+  "PF15DV.Notify.BadDC": "Enter a whole-number DC, or leave it blank for manual adjudication.",
+  "PF15DV.Notify.DCStoreFailed": "Could not store the hidden DC on this client.",
+  "PF15DV.Notify.RequestSent": "Perception request sent to {count} player(s).",
+  "PF15DV.Notify.NoCharacter": "You have no assigned character to roll Perception with.",
+  "PF15DV.Notify.ResultNoDC": "{actor} rolled Perception ({total}). No hidden DC set — use Manage Spotted to adjudicate.",
+  "PF15DV.Notify.ResultSuccess": "{actor} succeeded (rolled {total}) and now personally sees the creature.",
+  "PF15DV.Notify.ResultFail": "{actor} rolled {total} and did not spot the creature."
 }

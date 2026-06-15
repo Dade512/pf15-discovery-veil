@@ -10,6 +10,13 @@ export const SETTINGS = {
 
 export const SCHEMA_VERSION = 1;
 
+/** Socket channel + message types for the 0.3.0 Perception roll broker. */
+export const SOCKET = `module.${MODULE_ID}`;
+export const SOCKET_TYPES = {
+  perceptionRequest: "perceptionRequest",
+  perceptionResult: "perceptionResult"
+};
+
 /** CSS class names owned by this module. */
 export const CSS = {
   hudControl: "pf15dv-hud-control"

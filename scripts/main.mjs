@@ -3,6 +3,7 @@ import { registerSettings } from "./settings.mjs";
 import { initializeStateApi } from "./state.mjs";
 import { onRenderTokenHUD } from "./perception-gate.mjs";
 import { onDrawToken, onRefreshToken } from "./rendering.mjs";
+import { registerPerceptionSocket } from "./perception-requests.mjs";
 
 Hooks.once("init", () => {
   registerSettings();
@@ -10,7 +11,8 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   initializeStateApi();
-  console.log(`${MODULE_ID} | PF1.5 Discovery Veil ready (0.2.0 perception gate)`);
+  registerPerceptionSocket();
+  console.log(`${MODULE_ID} | PF1.5 Discovery Veil ready (0.3.0 perception gate + roll requests)`);
 });
 
 Hooks.on("renderTokenHUD", onRenderTokenHUD);
