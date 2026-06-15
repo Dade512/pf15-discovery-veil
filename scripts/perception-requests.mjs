@@ -53,12 +53,25 @@ function onSocketMessage(data) {
 /* ---------- eligibility ---------- */
 
 /**
- * Non-GM users with an assigned, player-owned character. No rank gate
- * (Perception is untrained-usable).
+ * The PC a given user will roll for a Perception request: their assigned
+ * character if it is player-owned, else the first player-owned actor they own.
+ * Eligibility is by OWNERSHIP, not assignment (Michael's 0.3.0 decision: "any
+ * player-owned actor"); Perception is untrained-usable, so no rank gate.
+ * @param {object} user
+ * @returns {object|null}
+ */
+export function perceptionActorForUser(user) {
+  if ( !user || user.isGM ) return null;
+  if ( user.character?.hasPlayerOwner ) return user.character;
+  return game.actors.find(a => a.hasPlayerOwner && a.testUserPermission(user, "OWNER")) ?? null;
+}
+
+/**
+ * Non-GM users who own a player-owned PC to roll (assigned OR merely owned).
  * @returns {Array} eligible User documents
  */
 export function eligiblePerceptionUsers() {
-  return game.users.filter(u => !u.isGM && u.character && u.character.hasPlayerOwner);
+  return game.users.filter(u => !u.isGM && !!perceptionActorForUser(u));
 }
 
 /* ---------- GM: request dialog ---------- */
@@ -118,7 +131,8 @@ export async function openPerceptionRequestDialog(ref) {
       const el = dialog.element;
       for ( const u of users ) {
         const cb = el.querySelector(`input[name="${CSS.escape(u.id)}"]`);
-        if ( cb?.parentElement ) cb.parentElement.append(document.createTextNode(" " + u.name));
+        const pc = perceptionActorForUser(u);
+        if ( cb?.parentElement ) cb.parentElement.append(document.createTextNode(` ${u.name}${pc ? " — " + pc.name : ""}`));
       }
     }
   });
@@ -147,7 +161,7 @@ export async function openPerceptionRequestDialog(ref) {
 
 async function handlePerceptionRequest(data) {
   if ( !Array.isArray(data.userIds) || !data.userIds.includes(game.user.id) ) return;
-  const actor = game.user.character;
+  const actor = perceptionActorForUser(game.user);
   if ( !actor ) {
     ui.notifications?.warn(game.i18n.localize("PF15DV.Notify.NoCharacter"));
     return;

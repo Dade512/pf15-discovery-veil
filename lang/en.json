@@ -27,7 +27,7 @@
   "PF15DV.Notify.BadDC": "Enter a whole-number DC, or leave it blank for manual adjudication.",
   "PF15DV.Notify.DCStoreFailed": "Could not store the hidden DC on this client.",
   "PF15DV.Notify.RequestSent": "Perception request sent to {count} player(s).",
-  "PF15DV.Notify.NoCharacter": "You have no assigned character to roll Perception with.",
+  "PF15DV.Notify.NoCharacter": "You have no player-owned character to roll Perception with.",
   "PF15DV.Notify.ResultNoDC": "{actor} rolled Perception ({total}). No hidden DC set — use Manage Spotted to adjudicate.",
   "PF15DV.Notify.ResultSuccess": "{actor} succeeded (rolled {total}) and now personally sees the creature.",
   "PF15DV.Notify.ResultFail": "{actor} rolled {total} and did not spot the creature."
