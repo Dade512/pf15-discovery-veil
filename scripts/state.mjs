@@ -377,13 +377,17 @@ export async function setHiddenPerceptionDC(sceneId, tokenId, dc) {
 }
 
 /**
- * Read the hidden Perception DC for a token (active-GM client only). Returns
- * null when absent or unavailable (fail closed).
+ * Read the hidden Perception DC for a token. Active-GM client ONLY: this helper
+ * enforces the gate itself (Lyra 0.2.0 audit #1) rather than trusting callers,
+ * so a non-active-GM client always gets null. The read fails closed and now
+ * matches the strictness of setHiddenPerceptionDC's writer. Returns null when
+ * refused, absent, or unavailable.
  * @param {string} sceneId
  * @param {string} tokenId
  * @returns {number|null}
  */
 export function getHiddenPerceptionDC(sceneId, tokenId) {
+  if ( !isActiveGMClient() ) return null;
   const key = perceptionKey(sceneId, tokenId);
   if ( !key ) return null;
   const rec = readPrivateWorldBucket().perception[key];

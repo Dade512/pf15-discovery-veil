@@ -125,6 +125,12 @@ async function revealGloballyAction(tokenDoc) {
   if ( gate && gate.hiddenByModule && (tokenDoc.hidden === true) ) {
     await tokenDoc.update({ hidden: !!gate.priorHidden });
   }
+  // Lyra 0.2.0 audit #2: a token the GM had hidden BEFORE the gate stays hidden
+  // (priorHidden retained, not module-owned), so "Reveal Globally" can't expose
+  // it. Tell the GM so the button label doesn't promise more than it can do.
+  if ( gate && gate.priorHidden && (tokenDoc.hidden === true) ) {
+    ui.notifications?.info(game.i18n.localize("PF15DV.Notify.PriorHiddenRetained"));
+  }
   syncPerceptionTokens();
 }
 
@@ -163,7 +169,7 @@ async function openSpottedDialog(ref) {
     render: (event, dialog) => {
       const el = dialog.element;
       for ( const u of players ) {
-        const cb = el.querySelector(`input[name="${u.id}"]`);
+        const cb = el.querySelector(`input[name="${CSS.escape(u.id)}"]`);
         if ( cb?.parentElement ) cb.parentElement.append(document.createTextNode(" " + u.name));
       }
     }

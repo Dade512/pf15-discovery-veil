@@ -12,5 +12,6 @@
   "PF15DV.Dialog.SpottedTitle": "Mark Who Has Spotted",
   "PF15DV.Dialog.SpottedHint": "Check each player who has personally spotted this creature. They will see it; others will not until you reveal globally.",
   "PF15DV.Dialog.Save": "Save",
-  "PF15DV.Dialog.Cancel": "Cancel"
+  "PF15DV.Dialog.Cancel": "Cancel",
+  "PF15DV.Notify.PriorHiddenRetained": "Discovery gate revealed, but this token stays hidden because you had already hidden it before the gate — its native hidden state was retained."
 }
