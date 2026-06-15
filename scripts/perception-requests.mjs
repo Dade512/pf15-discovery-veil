@@ -20,7 +20,7 @@
  * (no DC found on the active GM → "Manage Spotted").
  */
 
-import { MODULE_ID, SOCKET, SOCKET_TYPES, CSS } from "./module-constants.mjs";
+import { MODULE_ID, SETTINGS, SOCKET, SOCKET_TYPES, CSS } from "./module-constants.mjs";
 import {
   getPerceptionGate, getHiddenPerceptionDC, setHiddenPerceptionDC,
   markSpotted, isActiveGMClient
@@ -28,6 +28,12 @@ import {
 import { syncPerceptionTokens } from "./rendering.mjs";
 
 const DialogV2 = foundry.applications.api.DialogV2;
+
+/** Debug log, gated on the module's debugLogging client setting. */
+function dlog(...args) {
+  try { if ( game.settings.get(MODULE_ID, SETTINGS.debugLogging) ) console.log(`${MODULE_ID} |`, ...args); }
+  catch (_) {}
+}
 
 /* ---------- socket plumbing ---------- */
 
@@ -37,12 +43,14 @@ export function registerPerceptionSocket() {
 }
 
 function emit(payload) {
+  dlog("socket -> emit", payload?.type, payload);
   game.socket.emit(SOCKET, payload);
 }
 
 function onSocketMessage(data) {
   try {
     if ( !data || (typeof data !== "object") ) return;
+    dlog("socket <- recv", data.type, data);
     if ( data.type === SOCKET_TYPES.perceptionRequest ) { handlePerceptionRequest(data); return; }
     if ( data.type === SOCKET_TYPES.perceptionResult ) { handlePerceptionResult(data); return; }
   } catch (err) {
@@ -160,8 +168,11 @@ export async function openPerceptionRequestDialog(ref) {
 /* ---------- player: receive request, prompt, roll, relay ---------- */
 
 async function handlePerceptionRequest(data) {
-  if ( !Array.isArray(data.userIds) || !data.userIds.includes(game.user.id) ) return;
+  const forMe = Array.isArray(data.userIds) && data.userIds.includes(game.user.id);
+  dlog("handlePerceptionRequest forMe?", forMe, "myUserId", game.user?.id, "targets", data.userIds);
+  if ( !forMe ) return;
   const actor = perceptionActorForUser(game.user);
+  dlog("handlePerceptionRequest resolved actor", actor?.name ?? null);
   if ( !actor ) {
     ui.notifications?.warn(game.i18n.localize("PF15DV.Notify.NoCharacter"));
     return;
@@ -216,6 +227,7 @@ async function rollAndRelay(actor, sceneId, tokenId) {
 /* ---------- active GM: adjudicate ---------- */
 
 async function handlePerceptionResult(data) {
+  dlog("handlePerceptionResult activeGM?", isActiveGMClient(), data);
   if ( !isActiveGMClient() ) return;
   const { sceneId, tokenId, userId, actorId, actorName, total } = data ?? {};
   if ( !sceneId || !tokenId || !userId || !Number.isFinite(total) ) return;
