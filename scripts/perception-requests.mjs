@@ -138,7 +138,7 @@ export async function openPerceptionRequestDialog(ref) {
     render: (event, dialog) => {
       const el = dialog.element;
       for ( const u of users ) {
-        const cb = el.querySelector(`input[name="${CSS.escape(u.id)}"]`);
+        const cb = el.querySelector(`input[name="${globalThis.CSS.escape(u.id)}"]`);
         const pc = perceptionActorForUser(u);
         if ( cb?.parentElement ) cb.parentElement.append(document.createTextNode(` ${u.name}${pc ? " — " + pc.name : ""}`));
       }
