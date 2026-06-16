@@ -2,5 +2,8 @@ desktop.ini
 **/desktop.ini
 __*.mjs
 
+# Release build artifact (packaged ad hoc for GitHub release assets)
+module.zip
+
 # External audit artifact (kept local, out of git scope)
 lyras_audit.md
