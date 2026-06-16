@@ -394,14 +394,180 @@ export function getHiddenPerceptionDC(sceneId, tokenId) {
   return (rec && Number.isFinite(rec.dc)) ? rec.dc : null;
 }
 
+/* ---------- spellcasting public CRUD (0.5.0) ---------- */
+
+/**
+ * Read a spell gate entry (or null). Keyed by a synthesized castId.
+ * @param {string} castId
+ * @returns {object|null}
+ */
+export function getSpellGate(castId) {
+  if ( !castId ) return null;
+  return readPublicRegistry().spellcasting[castId] ?? null;
+}
+
+/**
+ * Create a masked spell gate: the player-visible card was suppressed and
+ * replaced with a generic notice. Stores ONLY safe state — never the spell
+ * name/school/uuid (those live in the active-GM private store). publicLabel is
+ * the generic player-facing string.
+ * @param {string} castId
+ * @param {{publicLabel?:string}} [opts]
+ * @returns {Promise<boolean>}
+ */
+export async function markMasked(castId, { publicLabel = "A spell is being cast." } = {}) {
+  if ( !castId ) return false;
+  return updatePublicRegistry(reg => {
+    const prev = reg.spellcasting[castId];
+    reg.spellcasting[castId] = {
+      state: "masked",
+      identifiedBy: (prev && typeof prev.identifiedBy === "object") ? prev.identifiedBy : {},
+      publicLabel: String(publicLabel)
+    };
+    return true;
+  }, "markMasked");
+}
+
+/**
+ * Record that a user has personally identified the masked spell (safe actor
+ * attribution only; the spell name is delivered to them out-of-band, not here).
+ * @param {string} castId
+ * @param {string} userId
+ * @param {{actorId?:string, actorName?:string, round?:number, source?:string}} [attribution]
+ * @returns {Promise<boolean>}
+ */
+export async function markIdentified(castId, userId, attribution = {}) {
+  if ( !castId || !userId ) return false;
+  return updatePublicRegistry(reg => {
+    const entry = reg.spellcasting[castId];
+    if ( !entry ) return false;
+    entry.identifiedBy ??= {};
+    entry.identifiedBy[userId] = {
+      actorId: attribution.actorId ?? null,
+      actorName: attribution.actorName ?? null,
+      round: Number.isFinite(attribution.round) ? attribution.round : null,
+      source: (attribution.source === "spellcraft") ? "spellcraft" : "manual"
+    };
+    return true;
+  }, "markIdentified");
+}
+
+/**
+ * Globally reveal a masked spell (every player may now learn its identity).
+ * @param {string} castId
+ * @returns {Promise<boolean>}
+ */
+export async function setSpellGlobalReveal(castId) {
+  if ( !castId ) return false;
+  return updatePublicRegistry(reg => {
+    const entry = reg.spellcasting[castId];
+    if ( !entry || (entry.state === "globallyRevealed") ) return false;
+    entry.state = "globallyRevealed";
+    return true;
+  }, "setSpellGlobalReveal");
+}
+
+/**
+ * Remove a spell gate from the public registry entirely.
+ * @param {string} castId
+ * @returns {Promise<boolean>}
+ */
+export async function clearSpellGate(castId) {
+  if ( !castId ) return false;
+  return updatePublicRegistry(reg => {
+    if ( !(castId in reg.spellcasting) ) return false;
+    delete reg.spellcasting[castId];
+    return true;
+  }, "clearSpellGate");
+}
+
+/* ---------- spell identity (GM secret: name/school/uuid/DC) ---------- */
+
+/**
+ * Store the true spell identity + derived Spellcraft DC for a masked cast on
+ * the active-GM client only (localStorage; never replicated). All of these are
+ * forbidden on any public surface (assertNoSecrets / FORBIDDEN_PUBLIC_KEYS).
+ * @param {string} castId
+ * @param {{spellName:string, school?:string, spellItemUuid?:string,
+ *          casterActorUuid?:string, spellLevel?:number, dc?:number}} identity
+ * @returns {Promise<boolean>}
+ */
+export async function setHiddenSpellIdentity(castId, identity = {}) {
+  if ( !castId || !identity || typeof identity !== "object" ) return false;
+  return writePrivateWorldBucket(bucket => {
+    bucket.spellcasting[castId] = {
+      spellName: identity.spellName ?? null,
+      school: identity.school ?? null,
+      spellItemUuid: identity.spellItemUuid ?? null,
+      casterActorUuid: identity.casterActorUuid ?? null,
+      spellLevel: Number.isFinite(identity.spellLevel) ? identity.spellLevel : null,
+      dc: Number.isFinite(identity.dc) ? identity.dc : null
+    };
+    return true;
+  }, "setHiddenSpellIdentity");
+}
+
+/**
+ * Read the true spell identity for a masked cast. Active-GM client ONLY (fails
+ * closed to null on any other client), mirroring getHiddenPerceptionDC.
+ * @param {string} castId
+ * @returns {object|null}
+ */
+export function getHiddenSpellIdentity(castId) {
+  if ( !isActiveGMClient() || !castId ) return null;
+  const rec = readPrivateWorldBucket().spellcasting[castId];
+  return (rec && typeof rec === "object") ? rec : null;
+}
+
+/**
+ * Read the hidden Spellcraft DC for a masked cast (active-GM only; null else).
+ * @param {string} castId
+ * @returns {number|null}
+ */
+export function getHiddenSpellcraftDC(castId) {
+  const rec = getHiddenSpellIdentity(castId);
+  return (rec && Number.isFinite(rec.dc)) ? rec.dc : null;
+}
+
+/**
+ * Override the hidden Spellcraft DC for an existing masked cast (active-GM
+ * only). Returns false if there is no stored identity or the dc is invalid.
+ * @param {string} castId
+ * @param {number} dc
+ * @returns {Promise<boolean>}
+ */
+export async function setHiddenSpellcraftDC(castId, dc) {
+  if ( !castId || !Number.isFinite(Number(dc)) ) return false;
+  return writePrivateWorldBucket(bucket => {
+    const rec = bucket.spellcasting[castId];
+    if ( !rec || typeof rec !== "object" ) return false;
+    rec.dc = Number(dc);
+    return true;
+  }, "setHiddenSpellcraftDC");
+}
+
+/**
+ * Remove a masked cast's hidden identity from the active-GM private store.
+ * @param {string} castId
+ * @returns {Promise<boolean>}
+ */
+export async function clearHiddenSpellIdentity(castId) {
+  if ( !castId ) return false;
+  return writePrivateWorldBucket(bucket => {
+    if ( !(castId in bucket.spellcasting) ) return false;
+    delete bucket.spellcasting[castId];
+    return true;
+  }, "clearHiddenSpellIdentity");
+}
+
 /* ---------- status api ---------- */
 
 export function initializeStateApi() {
   globalThis.pf15DiscoveryVeil = {
     moduleId: MODULE_ID,
-    version: "0.3.1",
-    status: "perception-gate+requests",
+    version: "0.5.0",
+    status: "perception-gate+requests+spell-identification",
     // Read-only console helpers (no secrets): for manual checks.
-    _state: { readPublicRegistry, getPerceptionGate, isActiveGMClient, getCurrentWorldIdOrNull }
+    _state: { readPublicRegistry, getPerceptionGate, getSpellGate, isActiveGMClient, getCurrentWorldIdOrNull }
   };
 }
