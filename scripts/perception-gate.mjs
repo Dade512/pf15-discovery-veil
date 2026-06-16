@@ -14,7 +14,7 @@
  */
 
 import { MODULE_ID, SETTINGS, CSS } from "./module-constants.mjs";
-import { getPerceptionGate, markUndetected, clearPerceptionGate, setGlobalReveal, markSpotted, unmarkSpotted } from "./state.mjs";
+import { getPerceptionGate, markUndetected, clearPerceptionGate, setGlobalReveal, markSpotted, unmarkSpotted, setHiddenPerceptionDC } from "./state.mjs";
 import { syncPerceptionTokens } from "./rendering.mjs";
 import { openPerceptionRequestDialog } from "./perception-requests.mjs";
 
@@ -107,9 +107,13 @@ async function markUndetectedAction(tokenDoc) {
 /**
  * Clear the gate: restore the native hidden flag to its prior value ONLY if the
  * module owned the hide; never unhide a token the GM hid for another reason.
+ * Also clears the token's hidden Perception DC from the active-GM private store
+ * (0.6.0) so a cleared gate leaves no orphaned secret behind; on a non-active GM
+ * that write is a harmless no-op (the DC only ever lived on the active GM).
+ * Exported so the 0.6.0 discovery panel reuses the exact HUD behaviour.
  * @param {object} tokenDoc
  */
-async function clearGateAction(tokenDoc) {
+export async function clearGateAction(tokenDoc) {
   const ref = refForDoc(tokenDoc);
   if ( !ref ) return;
   const gate = getPerceptionGate(ref.sceneId, ref.tokenId);
@@ -117,15 +121,17 @@ async function clearGateAction(tokenDoc) {
     await tokenDoc.update({ hidden: !!gate.priorHidden });
   }
   await clearPerceptionGate(ref.sceneId, ref.tokenId);
+  await setHiddenPerceptionDC(ref.sceneId, ref.tokenId, null);
   syncPerceptionTokens();
 }
 
 /**
  * Reveal globally: mark public state revealed and restore the native hidden
  * flag (module-owned only) so every player sees the token normally.
+ * Exported so the 0.6.0 discovery panel reuses the exact HUD behaviour.
  * @param {object} tokenDoc
  */
-async function revealGloballyAction(tokenDoc) {
+export async function revealGloballyAction(tokenDoc) {
   const ref = refForDoc(tokenDoc);
   if ( !ref ) return;
   const gate = getPerceptionGate(ref.sceneId, ref.tokenId);
@@ -145,9 +151,10 @@ async function revealGloballyAction(tokenDoc) {
 /**
  * GM dialog to toggle which non-GM players have spotted the token. Player names
  * are assigned via textContent (untrusted), never interpolated into HTML.
+ * Exported so the 0.6.0 discovery panel reuses the exact HUD behaviour.
  * @param {{sceneId:string, tokenId:string}} ref
  */
-async function openSpottedDialog(ref) {
+export async function openSpottedDialog(ref) {
   const gate = getPerceptionGate(ref.sceneId, ref.tokenId);
   const spotted = (gate && gate.spottedBy) ? gate.spottedBy : {};
   const players = game.users.filter(u => !u.isGM);

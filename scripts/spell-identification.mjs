@@ -24,7 +24,8 @@
 import { MODULE_ID, SETTINGS, CSS, SPELL_ID_DC_BASE } from "./module-constants.mjs";
 import {
   setHiddenSpellIdentity, getHiddenSpellIdentity, getSpellGate,
-  markMasked, setSpellGlobalReveal, isActiveGMClient
+  markMasked, setSpellGlobalReveal, isActiveGMClient,
+  clearSpellGate, clearHiddenSpellIdentity
 } from "./state.mjs";
 import { openSpellcraftRequestDialog } from "./spellcraft-requests.mjs";
 
@@ -226,6 +227,22 @@ export async function revealSpellToUser(castId, userId) {
     flags: { [MODULE_ID]: { castId, kind: "spellReveal" } }
   });
   return true;
+}
+
+/**
+ * Clear a masked cast entirely: remove its safe public gate AND, on the active
+ * GM, its private identity. Used by the 0.6.0 discovery panel's "Clear" action.
+ * Non-active GMs can still remove the public gate (the identity, which only ever
+ * lived on the active GM's client, is cleared there).
+ * @param {string} castId
+ * @returns {Promise<boolean>}
+ */
+export async function clearSpellMask(castId) {
+  if ( !castId ) return false;
+  const publicCleared = await clearSpellGate(castId);
+  let privateCleared = false;
+  if ( isActiveGMClient() ) privateCleared = await clearHiddenSpellIdentity(castId);
+  return publicCleared || privateCleared;
 }
 
 /**

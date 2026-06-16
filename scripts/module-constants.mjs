@@ -24,7 +24,8 @@ export const CSS = {
   hudControl: "pf15dv-hud-control",
   spellCast: "pf15dv-spell-cast",
   cardButton: "pf15dv-card-button",
-  gmNote: "pf15dv-gm-note"
+  gmNote: "pf15dv-gm-note",
+  panel: "pf15dv-panel"
 };
 
 /**

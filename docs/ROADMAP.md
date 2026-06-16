@@ -131,15 +131,27 @@ Open design questions:
 
 ## Milestone 0.6.0 - Shared Discovery UI
 
+Status: implemented (`scripts/discovery-panel.mjs`). GM-only ApplicationV2 panel,
+opened from a token scene-control button or the configurable keybinding.
+
 Goal: provide a GM panel for active discovery gates.
 
-Expected features:
+Delivered features:
 
-- Current undetected tokens.
-- Current masked spell casts.
-- Per-player/per-PC success status.
-- Buttons for personal reveal, clear, and global reveal.
-- Debug view of public vs private state without leaking secrets to players.
+- Current undetected tokens (per scene), with hidden Perception DC shown only on
+  the active GM client.
+- Current masked spell casts, with the true name/school/DC shown only on the
+  active GM client (the generic label + "identity on active GM's client"
+  otherwise).
+- Per-player/per-PC success status (spottedBy / identifiedBy attribution).
+- Buttons reusing the existing HUD/card actions: Manage spotted, Request check
+  (Perception / Spellcraft), Reveal to all, Focus, Clear.
+- Live refresh on public-registry change (a player's successful roll updates the
+  panel without a manual refresh) via the updateSetting hook.
+
+Privacy: the list is built from the SAFE public registry; secrets are read only
+through the active-GM-gated getters (fail closed) and never written into any
+data-* attribute. The panel is GM-only; players cannot open it.
 
 ## Deferred
 

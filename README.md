@@ -6,6 +6,7 @@ Two related table workflows:
 
 - **Hidden creature discovery (live, 0.2.0):** the GM marks a creature *undetected*; players who have personally spotted it (or after a manual global reveal) can see it, while others cannot. The GM always sees the true token.
 - **Spell identification (live, 0.5.0):** non-player spellcasting is shown to players as a generic "a spell is being cast" notice; the true identity stays on the active GM's client until a player succeeds at a Spellcraft check, after which the GM can reveal it.
+- **Shared discovery panel (0.6.0):** a GM-only window listing every active gate — undetected creatures and masked spell casts — in one place, with per-player status and the reveal/request/clear actions consolidated.
 
 ## Design Posture
 
@@ -37,9 +38,22 @@ This module treats discovery as table-facing presentation control, not adversari
   school** (a whisper only they and the GM can see); the GM can then reveal it to everyone.
 - Enable the **"Enable Spellcraft Reveals"** setting (off by default).
 
+## Shared Discovery Panel (0.6.0)
+
+- A **GM-only** window listing every active discovery gate at once — undetected creatures (per scene)
+  and masked spell casts — so the GM can run several gates without hunting through the canvas and chat.
+- Open it from the **token scene-control button** (the clipboard icon) or the configurable
+  **"Open Discovery Veil panel"** keybinding.
+- Each row shows per-player status (who has spotted / identified) and reuses the existing actions:
+  **Manage spotted**, **Request check** (Perception / Spellcraft), **Reveal to all**, **Focus**
+  (pan to the token), **Clear**.
+- Hidden DCs and true spell identities appear **only on the active GM's client** (read through the
+  same active-GM-gated getters that fail closed elsewhere); the panel is built from the safe public
+  registry and never writes a secret into the DOM. It refreshes live when a player's roll succeeds.
+
 ## Current Status
 
-Version `0.5.0` (Foundry `13.350` / PF1 `11.11`):
+Version `0.6.0` (Foundry `13.350` / PF1 `11.11`):
 
 - **Perception Gate (0.2.0)** — runtime-verified two-client (`docs/0.2.0-RUNTIME-VERIFY.md`).
 - **Perception roll requests (0.3.0)** — runtime-verified end-to-end over socketlib (`docs/0.3.0-RUNTIME-VERIFY.md`).
@@ -48,6 +62,8 @@ Version `0.5.0` (Foundry `13.350` / PF1 `11.11`):
 - **Spell Identification MVP (0.5.0)** — runtime-verified **live two-client**: the privacy gate
   (card suppression + zero identity leak), the Spellcraft broker, and the player-seat roll relay →
   reveal whisper. See `docs/0.5.0-RUNTIME-VERIFY.md`.
+- **Shared Discovery UI (0.6.0)** — GM panel consolidating active perception + spell gates
+  (`scripts/discovery-panel.mjs`). See `docs/0.6.0-RUNTIME-VERIFY.md`.
 
 See `docs/PLAN.md`, `docs/ROADMAP.md`, `docs/0.4.0-PROBE.md`, and `docs/SECURITY_AND_PRIVACY.md`.
 

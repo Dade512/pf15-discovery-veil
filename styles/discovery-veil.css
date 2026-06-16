@@ -45,3 +45,100 @@
   padding: 2px 8px;
   font-size: 0.85em;
 }
+
+/* 0.6.0 Shared Discovery UI — GM panel (ApplicationV2). */
+.pf15dv-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 6px 8px 8px;
+  color: #2a231d;
+}
+
+.pf15dv-panel .pf15dv-panel-warn {
+  font-size: 0.85em;
+  color: #6e2a22;
+  background: rgba(110, 42, 34, 0.08);
+  border: 1px solid rgba(110, 42, 34, 0.3);
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+
+.pf15dv-panel .pf15dv-panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pf15dv-panel .pf15dv-panel-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+  border-bottom: 1px solid #9e7d43;
+  padding-bottom: 2px;
+}
+
+.pf15dv-panel .pf15dv-panel-empty {
+  font-size: 0.9em;
+  opacity: 0.75;
+  font-style: italic;
+  padding: 2px 0;
+}
+
+.pf15dv-panel .pf15dv-panel-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(138, 123, 102, 0.5);
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: rgba(209, 198, 180, 0.25);
+}
+
+.pf15dv-panel .pf15dv-panel-entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pf15dv-panel .pf15dv-panel-entry-name {
+  font-weight: bold;
+}
+
+.pf15dv-panel .pf15dv-panel-entry-meta {
+  font-size: 0.8em;
+  opacity: 0.85;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pf15dv-panel .pf15dv-panel-status {
+  font-size: 0.85em;
+}
+
+.pf15dv-panel .pf15dv-panel-status-label {
+  font-weight: bold;
+}
+
+.pf15dv-panel .pf15dv-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pf15dv-panel .pf15dv-panel-btn {
+  width: auto;
+  flex: 0 0 auto;
+  line-height: normal;
+  padding: 2px 8px;
+  font-size: 0.82em;
+}
+
+.pf15dv-panel .pf15dv-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #9e7d43;
+  padding-top: 6px;
+}
