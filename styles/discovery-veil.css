@@ -1,2 +1,22 @@
-/* PF1.5 Discovery Veil scaffold.
-   Runtime styles should be added only with a feature spec and visual checklist. */
+/* PF1.5 Discovery Veil — scoped dialog styling.
+   Applies only to dialogs tagged with `pf15dv-dialog` (the GM "Request
+   Perception" dialog and the player roll prompt). Fixes (1) low-contrast text
+   on the parchment dialog background and (2) the dialog defaulting far wider
+   than its content needs. */
+
+.pf15dv-dialog {
+  max-width: 480px;
+}
+
+.pf15dv-dialog .window-content {
+  color: #2a231d;
+}
+
+.pf15dv-dialog .window-content .hint {
+  color: #4a3f33;
+  opacity: 1;
+}
+
+.pf15dv-dialog .window-content label {
+  color: #2a231d;
+}

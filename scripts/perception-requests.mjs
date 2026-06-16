@@ -116,6 +116,8 @@ export async function openPerceptionRequestDialog(ref) {
 
   const result = await DialogV2.wait({
     window: { title: "PF15DV.Dialog.RequestTitle", icon: "fa-solid fa-eye" },
+    classes: ["pf15dv-dialog"],
+    position: { width: 440 },
     content,
     buttons: [
       {
@@ -171,6 +173,8 @@ async function onPerceptionRequest({ sceneId, tokenId } = {}) {
   }
   const proceed = await DialogV2.confirm({
     window: { title: "PF15DV.Dialog.RollPromptTitle", icon: "fa-solid fa-eye" },
+    classes: ["pf15dv-dialog"],
+    position: { width: 360 },
     content: `<p>${game.i18n.localize("PF15DV.Dialog.RollPromptBody")}</p>`,
     rejectClose: false
   });

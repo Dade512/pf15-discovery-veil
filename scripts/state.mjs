@@ -399,7 +399,7 @@ export function getHiddenPerceptionDC(sceneId, tokenId) {
 export function initializeStateApi() {
   globalThis.pf15DiscoveryVeil = {
     moduleId: MODULE_ID,
-    version: "0.3.0",
+    version: "0.3.1",
     status: "perception-gate+requests",
     // Read-only console helpers (no secrets): for manual checks.
     _state: { readPublicRegistry, getPerceptionGate, isActiveGMClient, getCurrentWorldIdOrNull }
