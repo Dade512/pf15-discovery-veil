@@ -45,10 +45,9 @@ Version `0.5.0` (Foundry `13.350` / PF1 `11.11`):
 - **Perception roll requests (0.3.0)** — runtime-verified end-to-end over socketlib (`docs/0.3.0-RUNTIME-VERIFY.md`).
 - **0.3.1** — dialog readability/width fix.
 - **Spellcasting recon (0.4.0)** — written probe report, no feature code (`docs/0.4.0-PROBE.md`).
-- **Spell Identification MVP (0.5.0)** — GM-side runtime-verified incl. the privacy gate
-  (suppression + zero identity leak) and the Spellcraft broker/reveal; one player-seat roll-relay
-  hop awaits a live foreground pass (mirrors the proven 0.3.0 relay). See
-  `docs/0.5.0-RUNTIME-VERIFY.md`.
+- **Spell Identification MVP (0.5.0)** — runtime-verified **live two-client**: the privacy gate
+  (card suppression + zero identity leak), the Spellcraft broker, and the player-seat roll relay →
+  reveal whisper. See `docs/0.5.0-RUNTIME-VERIFY.md`.
 
 See `docs/PLAN.md`, `docs/ROADMAP.md`, `docs/0.4.0-PROBE.md`, and `docs/SECURITY_AND_PRIVACY.md`.
 

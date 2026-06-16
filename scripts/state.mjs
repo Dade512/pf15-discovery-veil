@@ -1,7 +1,7 @@
 import { MODULE_ID, SETTINGS, SCHEMA_VERSION } from "./module-constants.mjs";
 
 /* ============================================================
- * pf15-discovery-veil — state layer (0.2.0)
+ * pf15-discovery-veil — state layer (perception + spellcasting)
  *
  * Two stores, strictly separated (docs/ARCHITECTURE.md + SECURITY_AND_PRIVACY.md):
  *  - publicRegistry: WORLD setting, replicated to all clients. SAFE state ONLY

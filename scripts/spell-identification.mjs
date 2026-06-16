@@ -70,6 +70,12 @@ const maskedCasts = new WeakMap();
  */
 export function onPreActionUse(actionUse) {
   try {
+    // Mask on ANY GM client (not gated to the active GM) so the real card is
+    // always suppressed and never leaks. Identity storage below is active-GM-
+    // only, so on a multi-GM table a non-active GM produces a deliberately
+    // fail-secret, unrevealable mask (the GM is warned). Do NOT gate this on
+    // isActiveGMClient(): that would skip suppression and leak the real card.
+    // The correct multi-GM fix is to relay the identity to the active GM.
     if ( !game.user?.isGM ) return;                                   // only GM clients mask
     if ( !game.settings.get(MODULE_ID, SETTINGS.spellcraftEnabled) ) return;
     const item = actionUse?.item;
