@@ -8,6 +8,20 @@ Two related table workflows:
 - **Spell identification (live, 0.5.0):** non-player spellcasting is shown to players as a generic "a spell is being cast" notice; the true identity stays on the active GM's client until a player succeeds at a Spellcraft check, after which the GM can reveal it.
 - **Shared discovery panel (0.6.0):** a GM-only window listing every active gate — undetected creatures and masked spell casts — in one place, with per-player status and the reveal/request/clear actions consolidated.
 
+## Installation
+
+In Foundry, open **Configuration → Add-on Modules → Install Module**, paste this Manifest URL into the bottom field, and click **Install**:
+
+```
+https://github.com/Dade512/pf15-discovery-veil/releases/latest/download/module.json
+```
+
+This always installs the latest release (currently `0.6.0`). The same URL drives Foundry's built-in update check, so future versions update in place.
+
+**Requirements:** Foundry VTT `13.350`, the Pathfinder 1 (`pf1`) system, and the [**socketlib**](https://foundryvtt.com/packages/socketlib) module (used for the Perception/Spellcraft roll relays — install and enable it too).
+
+After installing, enable **PF1.5 Discovery Veil** in **Manage Modules**, then turn on the **"Enable Perception Reveals"** and/or **"Enable Spellcraft Reveals"** settings (both off by default).
+
 ## Design Posture
 
 This module treats discovery as table-facing presentation control, not adversarial anti-cheat security. Anything that must stay truly secret from players lives only on the active GM client and is never written into world/user settings, actor/token/scene/combatant flags, chat messages, or socket payloads.
