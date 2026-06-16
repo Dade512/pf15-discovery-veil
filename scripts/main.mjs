@@ -11,7 +11,7 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   initializeStateApi();
-  console.log(`${MODULE_ID} | PF1.5 Discovery Veil ready (0.3.0 perception gate + roll requests)`);
+  console.log(`${MODULE_ID} | PF1.5 Discovery Veil ready (0.3.1 perception gate + roll requests)`);
 });
 
 Hooks.once("socketlib.ready", () => {
