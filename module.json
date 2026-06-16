@@ -3,6 +3,7 @@
   "title": "PF1.5 Discovery Veil",
   "description": "Skill-gated discovery for PF1.5: a GM marks creatures undetected; only players who have spotted them (or after a manual global reveal) can see them. Presentation-layer, with GM secrets kept off replicated surfaces. Perception Gate live; Spellcraft identification planned.",
   "version": "0.3.0",
+  "socket": true,
   "compatibility": {
     "minimum": "13.350",
     "verified": "13.350"
