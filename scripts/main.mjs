@@ -11,8 +11,11 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   initializeStateApi();
-  registerPerceptionSocket();
   console.log(`${MODULE_ID} | PF1.5 Discovery Veil ready (0.3.0 perception gate + roll requests)`);
+});
+
+Hooks.once("socketlib.ready", () => {
+  registerPerceptionSocket();
 });
 
 Hooks.on("renderTokenHUD", onRenderTokenHUD);

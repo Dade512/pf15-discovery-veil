@@ -1,26 +1,28 @@
 /**
  * pf15-discovery-veil — 0.3.0 Perception roll requests + active-GM broker.
  *
- * Flow (docs/PLAN.md §C/§D, grounded in docs/0.3.0-PROBE.md):
+ * Cross-client transport uses socketlib (a required dependency). Raw
+ * game.socket module messages were not being delivered between clients in the
+ * target deployment; socketlib's executeForUsers / executeAsGM handle that
+ * reliably.
+ *
+ * Flow:
  *  1. GM opens "Request Perception" on an undetected token: sets a hidden DC
  *     (active-GM localStorage ONLY) and picks which eligible players to ask.
- *  2. A socket request goes to those players; each gets a "Roll Perception" prompt.
+ *  2. socketlib runs the request handler on those players; each gets a
+ *     "Roll Perception" prompt.
  *  3. The player rolls; this module captures the total from pf1ActorRollSkill
- *     (chatMessage.rolls[0].total — confirmed live) on the PLAYER's client and
- *     relays only {ids + total} to the active GM via socket.
- *  4. The active GM compares the total to the hidden DC (getHiddenPerceptionDC,
+ *     (chatMessage.rolls[0].total) on the PLAYER's client and relays {ids+total}
+ *     to the GM via socketlib executeAsGM.
+ *  4. The GM compares the total to the hidden DC (getHiddenPerceptionDC,
  *     active-GM gated) and, on success, marks the user spotted. The DC NEVER
  *     leaves the GM; there is no automatic global reveal.
  *
- * Eligibility: any non-GM user with an assigned, player-owned character.
+ * Eligibility: any non-GM user who owns a player-owned PC (assigned or owned).
  * Perception is untrained-usable, so there is no rank gate (Michael, 0.3.0).
- *
- * Single-GM assumption: the GM who sets the DC is game.users.activeGM (the same
- * client that brokers results). Multi-GM tables fall back to manual adjudication
- * (no DC found on the active GM → "Manage Spotted").
  */
 
-import { MODULE_ID, SETTINGS, SOCKET, SOCKET_TYPES, CSS } from "./module-constants.mjs";
+import { MODULE_ID, SETTINGS, SOCKET_TYPES } from "./module-constants.mjs";
 import {
   getPerceptionGate, getHiddenPerceptionDC, setHiddenPerceptionDC,
   markSpotted, isActiveGMClient
@@ -29,33 +31,27 @@ import { syncPerceptionTokens } from "./rendering.mjs";
 
 const DialogV2 = foundry.applications.api.DialogV2;
 
+/** socketlib module socket (set on the socketlib.ready hook). */
+let dvSocket = null;
+
 /** Debug log, gated on the module's debugLogging client setting. */
 function dlog(...args) {
   try { if ( game.settings.get(MODULE_ID, SETTINGS.debugLogging) ) console.log(`${MODULE_ID} |`, ...args); }
   catch (_) {}
 }
 
-/* ---------- socket plumbing ---------- */
+/* ---------- socketlib registration ---------- */
 
-/** Register the module socket dispatcher. Call once on ready. */
+/** Register socketlib handlers. Call on the socketlib.ready hook. */
 export function registerPerceptionSocket() {
-  game.socket.on(SOCKET, onSocketMessage);
-}
-
-function emit(payload) {
-  dlog("socket -> emit", payload?.type, payload);
-  game.socket.emit(SOCKET, payload);
-}
-
-function onSocketMessage(data) {
-  try {
-    if ( !data || (typeof data !== "object") ) return;
-    dlog("socket <- recv", data.type, data);
-    if ( data.type === SOCKET_TYPES.perceptionRequest ) { handlePerceptionRequest(data); return; }
-    if ( data.type === SOCKET_TYPES.perceptionResult ) { handlePerceptionResult(data); return; }
-  } catch (err) {
-    console.error(`${MODULE_ID} | socket handler error`, err);
+  if ( (typeof socketlib === "undefined") || !socketlib?.registerModule ) {
+    console.error(`${MODULE_ID} | socketlib is required for Perception roll requests but was not found. Enable the socketlib module.`);
+    return;
   }
+  dvSocket = socketlib.registerModule(MODULE_ID);
+  dvSocket.register(SOCKET_TYPES.perceptionRequest, onPerceptionRequest);
+  dvSocket.register(SOCKET_TYPES.perceptionResult, onPerceptionResult);
+  dlog("socketlib handlers registered");
 }
 
 /* ---------- eligibility ---------- */
@@ -63,8 +59,7 @@ function onSocketMessage(data) {
 /**
  * The PC a given user will roll for a Perception request: their assigned
  * character if it is player-owned, else the first player-owned actor they own.
- * Eligibility is by OWNERSHIP, not assignment (Michael's 0.3.0 decision: "any
- * player-owned actor"); Perception is untrained-usable, so no rank gate.
+ * Eligibility is by OWNERSHIP, not assignment; Perception is untrained-usable.
  * @param {object} user
  * @returns {object|null}
  */
@@ -91,6 +86,10 @@ export function eligiblePerceptionUsers() {
  */
 export async function openPerceptionRequestDialog(ref) {
   if ( !game.user.isGM ) return;
+  if ( !dvSocket ) {
+    ui.notifications?.error(game.i18n.localize("PF15DV.Notify.NoSocketlib"));
+    return;
+  }
   const gate = getPerceptionGate(ref.sceneId, ref.tokenId);
   if ( !gate || (gate.state !== "undetected") ) {
     ui.notifications?.warn(game.i18n.localize("PF15DV.Notify.NoActiveGate"));
@@ -150,29 +149,22 @@ export async function openPerceptionRequestDialog(ref) {
     ui.notifications?.warn(game.i18n.localize("PF15DV.Notify.BadDC"));
     return;
   }
-  // Store the hidden DC (active-GM, localStorage). Null clears it (manual mode).
   const stored = await setHiddenPerceptionDC(ref.sceneId, ref.tokenId, result.dc);
   if ( (result.dc !== null) && !stored ) {
     ui.notifications?.warn(game.i18n.localize("PF15DV.Notify.DCStoreFailed"));
   }
   if ( !result.userIds.length ) return;
-  emit({
-    type: SOCKET_TYPES.perceptionRequest,
-    sceneId: ref.sceneId,
-    tokenId: ref.tokenId,
-    userIds: result.userIds
-  });
+  dlog("executeForUsers perceptionRequest", { userIds: result.userIds, tokenId: ref.tokenId });
+  dvSocket.executeForUsers(SOCKET_TYPES.perceptionRequest, result.userIds, { sceneId: ref.sceneId, tokenId: ref.tokenId });
   ui.notifications?.info(game.i18n.format("PF15DV.Notify.RequestSent", { count: result.userIds.length }));
 }
 
-/* ---------- player: receive request, prompt, roll, relay ---------- */
+/* ---------- player: receive request (via socketlib), prompt, roll, relay ---------- */
 
-async function handlePerceptionRequest(data) {
-  const forMe = Array.isArray(data.userIds) && data.userIds.includes(game.user.id);
-  dlog("handlePerceptionRequest forMe?", forMe, "myUserId", game.user?.id, "targets", data.userIds);
-  if ( !forMe ) return;
+async function onPerceptionRequest({ sceneId, tokenId } = {}) {
+  dlog("onPerceptionRequest (socketlib)", { sceneId, tokenId, me: game.user?.name });
   const actor = perceptionActorForUser(game.user);
-  dlog("handlePerceptionRequest resolved actor", actor?.name ?? null);
+  dlog("resolved actor", actor?.name ?? null);
   if ( !actor ) {
     ui.notifications?.warn(game.i18n.localize("PF15DV.Notify.NoCharacter"));
     return;
@@ -183,12 +175,12 @@ async function handlePerceptionRequest(data) {
     rejectClose: false
   });
   if ( !proceed ) return;
-  await rollAndRelay(actor, data.sceneId, data.tokenId);
+  await rollAndRelay(actor, sceneId, tokenId);
 }
 
 /**
  * Roll Perception for `actor` on this client, capture the total from the
- * pf1ActorRollSkill payload, and relay only ids + total to the active GM.
+ * pf1ActorRollSkill payload, and relay ids + total to the GM via socketlib.
  * @param {object} actor
  * @param {string} sceneId
  * @param {string} tokenId
@@ -199,9 +191,9 @@ async function rollAndRelay(actor, sceneId, tokenId) {
     if ( done || (skillId !== "per") || (rolledActor?.id !== actor.id) ) return;
     done = true;
     const total = chatMessage?.rolls?.[0]?.total;
+    dlog("captured perception roll", { actor: actor.name, total });
     if ( !Number.isFinite(total) ) return;
-    emit({
-      type: SOCKET_TYPES.perceptionResult,
+    dvSocket.executeAsGM(SOCKET_TYPES.perceptionResult, {
       sceneId, tokenId,
       userId: game.user.id,
       actorId: actor.id,
@@ -209,10 +201,6 @@ async function rollAndRelay(actor, sceneId, tokenId) {
       total
     });
   };
-  // Await the roll (this blocks through the PF1 roll dialog, however long the
-  // player takes); the hook fires within it. A short grace covers any async gap
-  // before the chat message lands. The finally always detaches the listener so
-  // it can never match a later, unrelated Perception roll.
   Hooks.on("pf1ActorRollSkill", handler);
   try {
     await actor.rollSkill("per");
@@ -224,19 +212,16 @@ async function rollAndRelay(actor, sceneId, tokenId) {
   }
 }
 
-/* ---------- active GM: adjudicate ---------- */
+/* ---------- GM: adjudicate (via socketlib executeAsGM) ---------- */
 
-async function handlePerceptionResult(data) {
-  dlog("handlePerceptionResult activeGM?", isActiveGMClient(), data);
-  if ( !isActiveGMClient() ) return;
-  const { sceneId, tokenId, userId, actorId, actorName, total } = data ?? {};
+async function onPerceptionResult({ sceneId, tokenId, userId, actorId, actorName, total } = {}) {
+  dlog("onPerceptionResult (socketlib)", { sceneId, tokenId, userId, total, activeGM: isActiveGMClient() });
   if ( !sceneId || !tokenId || !userId || !Number.isFinite(total) ) return;
   const gate = getPerceptionGate(sceneId, tokenId);
   if ( !gate || (gate.state !== "undetected") ) return;
   const name = actorName ?? "?";
-  const dc = getHiddenPerceptionDC(sceneId, tokenId);
+  const dc = getHiddenPerceptionDC(sceneId, tokenId); // null unless active GM (guard) -> manual fallback
   if ( dc === null ) {
-    // No DC set for this gate — leave it to the GM (Manage Spotted).
     ui.notifications?.info(game.i18n.format("PF15DV.Notify.ResultNoDC", { actor: name, total }));
     return;
   }
@@ -246,7 +231,6 @@ async function handlePerceptionResult(data) {
     syncPerceptionTokens();
     ui.notifications?.info(game.i18n.format("PF15DV.Notify.ResultSuccess", { actor: name, total }));
   } else {
-    // GM-only feedback. The DC stays on the GM screen and never reaches players.
     ui.notifications?.info(game.i18n.format("PF15DV.Notify.ResultFail", { actor: name, total }));
   }
 }

@@ -26,6 +26,12 @@
     }
   ],
   "relationships": {
+    "requires": [
+      {
+        "id": "socketlib",
+        "type": "module"
+      }
+    ],
     "systems": [
       {
         "id": "pf1",
