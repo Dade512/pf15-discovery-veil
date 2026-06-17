@@ -46,6 +46,20 @@
   font-size: 0.85em;
 }
 
+/* 0.7.0 opt-in stripped public mechanics: save/attack/damage indicators only. */
+.pf15dv-spell-cast .pf15dv-spell-effect {
+  font-style: normal;
+  font-size: 0.85em;
+  color: #8a5a00;
+  border-top: 1px dotted #c9a44a;
+  padding-top: 3px;
+  margin-top: 2px;
+}
+
+.pf15dv-spell-cast .pf15dv-spell-effect i {
+  margin-right: 3px;
+}
+
 /* 0.6.0 Shared Discovery UI — GM panel (ApplicationV2). */
 .pf15dv-panel {
   display: flex;

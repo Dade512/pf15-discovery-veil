@@ -51,6 +51,12 @@ This module treats discovery as table-facing presentation control, not adversari
   Spellcraft**, `spl.rank ≥ 1`). On a success the roller is privately told the spell's **name and
   school** (a whisper only they and the GM can see); the GM can then reveal it to everyone.
 - Enable the **"Enable Spellcraft Reveals"** setting (off by default).
+- **Stripped public effect (0.7.0, opt-in):** turn on **"Show Masked Spell Effect"** to also show
+  players a non-identifying effect line on the generic card — the **save type**
+  (Fortitude/Reflex/Will), whether it's a **spell attack**, and whether it **deals damage** — so they
+  know what to brace for. The spell's **name, school, save DC, and damage amount are never shown.**
+  Off by default, because the save type narrows which spell it could be; enable it only if your table
+  accepts that hint.
 
 ## Shared Discovery Panel (0.6.0)
 
@@ -67,7 +73,7 @@ This module treats discovery as table-facing presentation control, not adversari
 
 ## Current Status
 
-Version `0.6.0` (Foundry `13.350` / PF1 `11.11`):
+Version `0.7.0` (Foundry `13.350` / PF1 `11.11`):
 
 - **Perception Gate (0.2.0)** — runtime-verified two-client (`docs/0.2.0-RUNTIME-VERIFY.md`).
 - **Perception roll requests (0.3.0)** — runtime-verified end-to-end over socketlib (`docs/0.3.0-RUNTIME-VERIFY.md`).
@@ -78,6 +84,10 @@ Version `0.6.0` (Foundry `13.350` / PF1 `11.11`):
   reveal whisper. See `docs/0.5.0-RUNTIME-VERIFY.md`.
 - **Shared Discovery UI (0.6.0)** — GM panel consolidating active perception + spell gates
   (`scripts/discovery-panel.mjs`). See `docs/0.6.0-RUNTIME-VERIFY.md`.
+- **Stripped public mechanics (0.7.0)** — opt-in `Show Masked Spell Effect` setting adds a
+  non-identifying save/attack/damage line to the generic masked card (never name/school/DC/amount).
+  Off by default; runtime-verified that the effect shows when on and leaks no identity
+  (`docs/0.7.0-RUNTIME-VERIFY.md`).
 
 See `docs/PLAN.md`, `docs/ROADMAP.md`, `docs/0.4.0-PROBE.md`, and `docs/SECURITY_AND_PRIVACY.md`.
 

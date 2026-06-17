@@ -565,8 +565,8 @@ export async function clearHiddenSpellIdentity(castId) {
 export function initializeStateApi() {
   globalThis.pf15DiscoveryVeil = {
     moduleId: MODULE_ID,
-    version: "0.6.0",
-    status: "perception-gate+requests+spell-identification+discovery-panel",
+    version: "0.7.0",
+    status: "perception-gate+requests+spell-identification+discovery-panel+stripped-effects",
     // Read-only console helpers (no secrets): for manual checks.
     _state: { readPublicRegistry, getPerceptionGate, getSpellGate, isActiveGMClient, getCurrentWorldIdOrNull }
   };

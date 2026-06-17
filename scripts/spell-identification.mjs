@@ -21,7 +21,7 @@
  * state (gate exists, who identified, generic label, castId) is replicated.
  */
 
-import { MODULE_ID, SETTINGS, CSS, SPELL_ID_DC_BASE } from "./module-constants.mjs";
+import { MODULE_ID, SETTINGS, CSS, SPELL_ID_DC_BASE, ATTACK_ACTION_TYPES } from "./module-constants.mjs";
 import {
   setHiddenSpellIdentity, getHiddenSpellIdentity, getSpellGate,
   markMasked, setSpellGlobalReveal, isActiveGMClient,
@@ -141,8 +141,51 @@ export function onPreDisplayActionUse(actionUse) {
 }
 
 /**
+ * Build the OPT-IN "stripped public mechanics" line for a masked cast (0.7.0):
+ * a non-identifying summary of what the spell DOES so players can react, with
+ * the identity withheld. Returns "" when the spellPublicEffect setting is off
+ * or the action carries no surfaceable mechanic.
+ *
+ * PRIVACY: this exposes ONLY the save type (Fortitude/Reflex/Will), whether the
+ * spell resolves as an attack, and whether it deals damage. It NEVER exposes the
+ * spell name, school, save DC, damage type/amount, or description — those remain
+ * the Spellcraft reward / GM secret. The disclosed facts narrow but do not
+ * reveal the spell, which is why this is off by default and the setting hint
+ * states the trade-off.
+ * @param {object} actionUse
+ * @returns {string}
+ */
+function strippedEffectLabel(actionUse) {
+  try {
+    if ( !game.settings.get(MODULE_ID, SETTINGS.spellPublicEffect) ) return "";
+    const action = actionUse?.action;
+    if ( !action ) return "";
+    // Prefer direct access; fall back through system/data (PF1 11.11 deprecates
+    // ItemAction#data but still serves it) so the read is version-tolerant.
+    const save = action.save ?? action.system?.save ?? action.data?.save ?? null;
+    const actionType = action.actionType ?? action.system?.actionType ?? action.data?.actionType ?? null;
+    const damage = action.damage ?? action.system?.damage ?? action.data?.damage ?? null;
+
+    const parts = [];
+    if ( save?.type ) {
+      const label = globalThis.pf1?.config?.savingThrows?.[save.type] ?? save.type;
+      parts.push(game.i18n.format("PF15DV.Spell.EffectSave", { save: label }));
+    }
+    if ( ATTACK_ACTION_TYPES.includes(actionType) ) parts.push(game.i18n.localize("PF15DV.Spell.EffectAttack"));
+    if ( damage?.parts?.length ) parts.push(game.i18n.localize("PF15DV.Spell.EffectDamage"));
+    if ( !parts.length ) return "";
+    return game.i18n.format("PF15DV.Spell.EffectPrefix", { effects: parts.join(" · ") });
+  } catch ( err ) {
+    console.error(`${MODULE_ID} | strippedEffectLabel failed`, err);
+    return "";
+  }
+}
+
+/**
  * Post the generic, player-safe "a spell is being cast" card. Carries only the
- * castId (a random id) in flags; no spell identity anywhere.
+ * castId (a random id) in flags; no spell identity anywhere. When the GM has
+ * opted into public effects (0.7.0), a non-identifying save/attack/damage line
+ * is appended (still no name/school/DC/amount).
  * @param {string} castId
  * @param {object} actionUse
  * @param {object} actor
@@ -150,7 +193,11 @@ export function onPreDisplayActionUse(actionUse) {
 async function postGenericCard(castId, actionUse, actor) {
   const token = actionUse?.token ?? actor?.token ?? undefined;
   const speaker = ChatMessage.implementation.getSpeaker({ actor, token });
-  const content = `<div class="${CSS.spellCast}"><i class="fa-solid fa-wand-magic-sparkles"></i> ${esc(genericLabel())}</div>`;
+  const effect = strippedEffectLabel(actionUse);
+  const content = `<div class="${CSS.spellCast}">`
+    + `<span><i class="fa-solid fa-wand-magic-sparkles"></i> ${esc(genericLabel())}</span>`
+    + (effect ? `<span class="${CSS.spellEffect}"><i class="fa-solid fa-triangle-exclamation" inert></i> ${esc(effect)}</span>` : "")
+    + "</div>";
   await ChatMessage.implementation.create({
     speaker,
     content,

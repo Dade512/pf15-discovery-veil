@@ -20,6 +20,18 @@ export function registerSettings() {
     default: false
   });
 
+  // 0.7.0 stripped public mechanics: when ON, the generic masked-spell card also
+  // shows the save type / attack / damage indicators (never the name, school,
+  // DC, or damage amount). Off by default — opting in is a per-table call.
+  game.settings.register(MODULE_ID, SETTINGS.spellPublicEffect, {
+    name: "PF15DV.Settings.SpellPublicEffect.Name",
+    hint: "PF15DV.Settings.SpellPublicEffect.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+
   game.settings.register(MODULE_ID, SETTINGS.debugLogging, {
     name: "PF15DV.Settings.DebugLogging.Name",
     hint: "PF15DV.Settings.DebugLogging.Hint",

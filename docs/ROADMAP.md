@@ -128,6 +128,9 @@ Open design questions:
 - Is the reveal party-wide after one success, or personal until communicated?
 - Does the module reveal only name/school, or the full spell card/description?
 - Should already-public save/damage cards remain public while the spell identity stays masked?
+  **Partially answered in 0.7.0** (see below): an opt-in setting surfaces a non-identifying
+  save/attack/damage line on the generic card; full save/damage *cards* remain withheld until
+  identification.
 
 ## Milestone 0.6.0 - Shared Discovery UI
 
@@ -152,6 +155,25 @@ Delivered features:
 Privacy: the list is built from the SAFE public registry; secrets are read only
 through the active-GM-gated getters (fail closed) and never written into any
 data-* attribute. The panel is GM-only; players cannot open it.
+
+## Milestone 0.7.0 - Stripped public spell mechanics (opt-in)
+
+Status: implemented (`scripts/spell-identification.mjs` `strippedEffectLabel`). Runtime-verified
+(`docs/0.7.0-RUNTIME-VERIFY.md`).
+
+Goal: let players know what a masked non-player spell DOES (so they can react) without revealing
+its identity — the conservative slice of the 0.4.0 probe's "stripped-mechanics re-post" option.
+
+Delivered:
+
+- New opt-in world setting `spellPublicEffect` ("Show Masked Spell Effect"), OFF by default.
+- When on, the generic masked-spell card gains a non-identifying effect line surfacing ONLY the save
+  type (Fortitude/Reflex/Will), whether it is a spell attack, and whether it deals damage.
+- NEVER surfaces the spell name, school, save DC, or damage type/amount. The hidden identity still
+  lives only in the active-GM private store (the 0.5.0 invariant is untouched).
+
+Deferred: re-posting the full save/damage *cards* (with identity stripped) — higher leak surface and
+more work; the 0.7.0 line is the minimal, clearly-safe disclosure.
 
 ## Deferred
 
