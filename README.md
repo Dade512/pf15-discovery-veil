@@ -16,7 +16,7 @@ In Foundry, open **Configuration → Add-on Modules → Install Module**, paste 
 https://github.com/Dade512/pf15-discovery-veil/releases/latest/download/module.json
 ```
 
-This always installs the latest release (currently `0.6.0`). The same URL drives Foundry's built-in update check, so future versions update in place.
+This always installs the latest release, and the same URL drives Foundry's built-in update check, so future versions update in place.
 
 **Requirements:** Foundry VTT `13.350`, the Pathfinder 1 (`pf1`) system, and the [**socketlib**](https://foundryvtt.com/packages/socketlib) module (used for the Perception/Spellcraft roll relays — install and enable it too).
 
