@@ -75,8 +75,14 @@ This module treats discovery as table-facing presentation control, not adversari
 
 ## Current Status
 
-Version `0.7.3` (Foundry `13.350` / PF1 `11.11`):
+Version `0.7.4` (Foundry `13.350` / PF1 `11.11`):
 
+- **Broker refactor (0.7.4)** — the Perception (0.3.0) and Spellcraft (0.5.0) request flows, which
+  were ~95% duplicated, now share one `createSkillBroker` factory (`scripts/skill-request.mjs`); the
+  two broker files are thin config wrappers describing only their differences (skill key, trained
+  eligibility, gate/DC, target shape, i18n, success action). socketlib is now registered once on a
+  single shared socket. Internal cleanup only — behavior is preserved exactly (including the
+  per-skill DC handling and the verified-sender hardening). No new features.
 - **Render leak fix (0.7.3)** — a per-user *spot* no longer force-shows a token the GM had hidden
   before the gate (a non-module-owned / prior-hidden token); only the module's own hide is
   overridden for spotted players, matching the guarantee the global reveal/clear paths already honor.
