@@ -164,6 +164,10 @@ export async function openPerceptionRequestDialog(ref) {
 /* ---------- player: receive request (via socketlib), prompt, roll, relay ---------- */
 
 async function onPerceptionRequest({ sceneId, tokenId } = {}) {
+  // Only honor a request that genuinely came from a GM (socketlib's verified
+  // sender, this.socketdata.userId), so a player cannot pop roll prompts on
+  // other players' screens.
+  if ( !game.users.get(this?.socketdata?.userId)?.isGM ) return;
   dlog("onPerceptionRequest (socketlib)", { sceneId, tokenId, me: game.user?.name });
   const actor = perceptionActorForUser(game.user);
   dlog("resolved actor", actor?.name ?? null);
@@ -218,23 +222,32 @@ async function rollAndRelay(actor, sceneId, tokenId) {
 
 /* ---------- GM: adjudicate (via socketlib executeAsGM) ---------- */
 
-async function onPerceptionResult({ sceneId, tokenId, userId, actorId, actorName, total } = {}) {
-  dlog("onPerceptionResult (socketlib)", { sceneId, tokenId, userId, total, activeGM: isActiveGMClient() });
-  if ( !sceneId || !tokenId || !userId || !Number.isFinite(total) ) return;
+async function onPerceptionResult({ sceneId, tokenId, total } = {}) {
+  // Trust socketlib's verified sender (this.socketdata.userId), NEVER the
+  // payload's claimed userId/actor: the result is honored only for the actual
+  // sender, and only if that sender is an eligible roller — so a player cannot
+  // forge a result for, or spot a token on behalf of, another user, and the
+  // attribution is derived from the verified actor. The roll `total` is still
+  // client-reported (Foundry has no server-side dice), so an invited roller
+  // could fudge their own number, the same as any roll; they cannot forge for
+  // anyone else.
+  const sender = game.users.get(this?.socketdata?.userId);
+  const actor = sender ? perceptionActorForUser(sender) : null;
+  if ( !actor || !sceneId || !tokenId || !Number.isFinite(total) ) return;
+  dlog("onPerceptionResult (socketlib)", { sceneId, tokenId, userId: sender.id, total, activeGM: isActiveGMClient() });
   const gate = getPerceptionGate(sceneId, tokenId);
   if ( !gate || (gate.state !== "undetected") ) return;
-  const name = actorName ?? "?";
   const dc = getHiddenPerceptionDC(sceneId, tokenId); // null unless active GM (guard) -> manual fallback
   if ( dc === null ) {
-    ui.notifications?.info(game.i18n.format("PF15DV.Notify.ResultNoDC", { actor: name, total }));
+    ui.notifications?.info(game.i18n.format("PF15DV.Notify.ResultNoDC", { actor: actor.name, total }));
     return;
   }
   if ( total >= dc ) {
     const round = game.combat?.round ?? null;
-    await markSpotted(sceneId, tokenId, userId, { actorId, actorName, round, source: "perception" });
+    await markSpotted(sceneId, tokenId, sender.id, { actorId: actor.id, actorName: actor.name, round, source: "perception" });
     syncPerceptionTokens();
-    ui.notifications?.info(game.i18n.format("PF15DV.Notify.ResultSuccess", { actor: name, total }));
+    ui.notifications?.info(game.i18n.format("PF15DV.Notify.ResultSuccess", { actor: actor.name, total }));
   } else {
-    ui.notifications?.info(game.i18n.format("PF15DV.Notify.ResultFail", { actor: name, total }));
+    ui.notifications?.info(game.i18n.format("PF15DV.Notify.ResultFail", { actor: actor.name, total }));
   }
 }

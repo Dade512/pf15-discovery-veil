@@ -73,8 +73,13 @@ This module treats discovery as table-facing presentation control, not adversari
 
 ## Current Status
 
-Version `0.7.1` (Foundry `13.350` / PF1 `11.11`):
+Version `0.7.2` (Foundry `13.350` / PF1 `11.11`):
 
+- **Socket hardening (0.7.2)** — the Perception/Spellcraft result handlers now trust socketlib's
+  verified sender instead of the request payload, so a player can no longer forge a roll result for
+  another user or trigger a spell-identity reveal without being the actual, eligible roller; the
+  request handlers only honor GM-initiated prompts. (Roll totals are still client-reported — Foundry
+  has no server-side dice — so an invited roller can fudge their own check, same as any roll.)
 - **Tracker leak fix (0.7.1)** — an undetected creature that is also a combatant now has its
   combat-tracker row hidden from players too (previously the gate hid only the canvas token);
   the row is restored on reveal/clear.

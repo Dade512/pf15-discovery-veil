@@ -159,6 +159,9 @@ export async function openSpellcraftRequestDialog(castId) {
 /* ---------- player: receive request, prompt, roll, relay ---------- */
 
 async function onSpellcraftRequest({ castId } = {}) {
+  // Only honor a request that genuinely came from a GM (socketlib's verified
+  // sender), so a player cannot pop roll prompts on other players' screens.
+  if ( !game.users.get(this?.socketdata?.userId)?.isGM ) return;
   dlog("onSpellcraftRequest (socketlib)", { castId, me: game.user?.name });
   const actor = spellcraftActorForUser(game.user);
   if ( !actor ) {
@@ -211,23 +214,32 @@ async function rollAndRelay(actor, castId) {
 
 /* ---------- GM: adjudicate (executeAsGM) ---------- */
 
-async function onSpellcraftResult({ castId, userId, actorId, actorName, total } = {}) {
-  dlog("onSpellcraftResult (socketlib)", { castId, userId, total, activeGM: isActiveGMClient() });
-  if ( !castId || !userId || !Number.isFinite(total) ) return;
+async function onSpellcraftResult({ castId, total } = {}) {
+  // Trust socketlib's verified sender (this.socketdata.userId), NEVER the
+  // payload's claimed userId: the spell identity is revealed ONLY to the actual
+  // sender, and only if that sender is an eligible (trained, owning) roller.
+  // This closes the forged-result leak where any player could call this handler
+  // to have the GM whisper them — or another player — any masked spell's true
+  // identity with no roll. The `total` is still client-reported (Foundry has no
+  // server-side dice), so an invited roller could fudge their own check, the
+  // same as any roll; they cannot forge a result for, or reveal to, anyone else.
+  const sender = game.users.get(this?.socketdata?.userId);
+  const actor = sender ? spellcraftActorForUser(sender) : null;
+  if ( !actor || !castId || !Number.isFinite(total) ) return;
+  dlog("onSpellcraftResult (socketlib)", { castId, userId: sender.id, total, activeGM: isActiveGMClient() });
   const gate = getSpellGate(castId);
   if ( !gate || (gate.state !== "masked") ) return;
-  const name = actorName ?? "?";
   const dc = getHiddenSpellcraftDC(castId);                          // null unless active GM
   if ( dc === null ) {
-    ui.notifications?.info(game.i18n.format("PF15DV.Spell.ResultNoDC", { actor: name, total }));
+    ui.notifications?.info(game.i18n.format("PF15DV.Spell.ResultNoDC", { actor: actor.name, total }));
     return;
   }
   if ( total >= dc ) {
     const round = game.combat?.round ?? null;
-    await markIdentified(castId, userId, { actorId, actorName, round, source: "spellcraft" });
-    await revealSpellToUser(castId, userId);
-    ui.notifications?.info(game.i18n.format("PF15DV.Spell.ResultSuccess", { actor: name, total }));
+    await markIdentified(castId, sender.id, { actorId: actor.id, actorName: actor.name, round, source: "spellcraft" });
+    await revealSpellToUser(castId, sender.id);
+    ui.notifications?.info(game.i18n.format("PF15DV.Spell.ResultSuccess", { actor: actor.name, total }));
   } else {
-    ui.notifications?.info(game.i18n.format("PF15DV.Spell.ResultFail", { actor: name, total }));
+    ui.notifications?.info(game.i18n.format("PF15DV.Spell.ResultFail", { actor: actor.name, total }));
   }
 }
