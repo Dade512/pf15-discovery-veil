@@ -42,6 +42,11 @@ function shouldShowToUser(token) {
   try { gate = getPerceptionGate(ref.sceneId, ref.tokenId); }
   catch(err) { console.error(`${MODULE_ID} | failed to resolve perception gate`, err); return false; }
   if ( !gate || (gate.state !== "undetected") ) return false;
+  // Only override a hide the module itself applied. If the GM had the token
+  // hidden BEFORE the gate (priorHidden / not module-owned), a per-user spot
+  // must NOT force it visible — that would expose a token the GM hid for another
+  // reason, the same guarantee the global reveal/clear paths already honor.
+  if ( !gate.hiddenByModule || gate.priorHidden ) return false;
   return !!(gate.spottedBy && gate.spottedBy[game.user.id]);
 }
 

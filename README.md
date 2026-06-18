@@ -5,7 +5,9 @@ Skill-gated discovery tools for Foundry VTT `13.350` + PF1.
 Two related table workflows:
 
 - **Hidden creature discovery (live, 0.2.0):** the GM marks a creature *undetected*; players who have personally spotted it (or after a manual global reveal) can see it, while others cannot. The GM always sees the true token.
+- **Perception roll requests (live, 0.3.0):** the GM can ask chosen players to roll Perception against a hidden DC; a success marks that player as having spotted the creature, and the DC never leaves the GM.
 - **Spell identification (live, 0.5.0):** non-player spellcasting is shown to players as a generic "a spell is being cast" notice; the true identity stays on the active GM's client until a player succeeds at a Spellcraft check, after which the GM can reveal it.
+- **Stripped public effect (opt-in, 0.7.0):** the masked spell card can optionally show a non-identifying save / spell-attack / deals-damage cue — never the name, school, DC, or amounts.
 - **Shared discovery panel (0.6.0):** a GM-only window listing every active gate — undetected creatures and masked spell casts — in one place, with per-player status and the reveal/request/clear actions consolidated.
 
 ## Installation
@@ -73,8 +75,11 @@ This module treats discovery as table-facing presentation control, not adversari
 
 ## Current Status
 
-Version `0.7.2` (Foundry `13.350` / PF1 `11.11`):
+Version `0.7.3` (Foundry `13.350` / PF1 `11.11`):
 
+- **Render leak fix (0.7.3)** — a per-user *spot* no longer force-shows a token the GM had hidden
+  before the gate (a non-module-owned / prior-hidden token); only the module's own hide is
+  overridden for spotted players, matching the guarantee the global reveal/clear paths already honor.
 - **Socket hardening (0.7.2)** — the Perception/Spellcraft result handlers now trust socketlib's
   verified sender instead of the request payload, so a player can no longer forge a roll result for
   another user or trigger a spell-identity reveal without being the actual, eligible roller; the
