@@ -31,6 +31,40 @@ function refForDoc(tokenDoc) {
 }
 
 /**
+ * Every Combatant (across all combats) for a placed token. An undetected
+ * creature that is also a combatant would otherwise leak via the combat
+ * tracker, so the gate hides these rows too (F1).
+ * @param {string} sceneId
+ * @param {string} tokenId
+ * @returns {object[]}
+ */
+function combatantsForToken(sceneId, tokenId) {
+  const out = [];
+  for ( const combat of game.combats ?? [] ) {
+    for ( const c of combat.combatants ) {
+      if ( (c.sceneId === sceneId) && (c.tokenId === tokenId) ) out.push(c);
+    }
+  }
+  return out;
+}
+
+/**
+ * Unhide the combat-tracker rows the module hid, by combatant id. Only unhides
+ * combatants that are currently hidden AND were recorded by the module — never
+ * one the GM hid for another reason (mirrors the token priorHidden discipline).
+ * @param {string[]} ids
+ */
+async function restoreHiddenCombatants(ids) {
+  if ( !Array.isArray(ids) ) return;
+  for ( const id of ids ) {
+    for ( const combat of game.combats ?? [] ) {
+      const c = combat.combatants.get(id);
+      if ( c && (c.hidden === true) ) await c.update({ hidden: false });
+    }
+  }
+}
+
+/**
  * Handle renderTokenHUD: add GM discovery controls.
  * @param {object} app
  * @param {HTMLElement} element
@@ -98,9 +132,15 @@ async function markUndetectedAction(tokenDoc) {
   const ref = refForDoc(tokenDoc);
   if ( !ref ) return;
   const priorHidden = (tokenDoc.hidden === true);
-  const ok = await markUndetected(ref.sceneId, ref.tokenId, { priorHidden, hiddenByModule: !priorHidden });
+  // Combat-tracker rows the module will hide (F1): the token's combatants that
+  // are not already hidden. Recorded in the gate so clear/reveal restore exactly
+  // these and never unhide a row the GM hid for another reason.
+  const combatants = combatantsForToken(ref.sceneId, ref.tokenId);
+  const combatantHides = combatants.filter(c => c.hidden !== true).map(c => c.id);
+  const ok = await markUndetected(ref.sceneId, ref.tokenId, { priorHidden, hiddenByModule: !priorHidden, combatantHides });
   if ( !ok ) return;
   if ( !priorHidden ) await tokenDoc.update({ hidden: true });
+  for ( const c of combatants ) { if ( c.hidden !== true ) await c.update({ hidden: true }); }
   syncPerceptionTokens();
 }
 
@@ -120,6 +160,7 @@ export async function clearGateAction(tokenDoc) {
   if ( gate && gate.hiddenByModule && (tokenDoc.hidden === true) ) {
     await tokenDoc.update({ hidden: !!gate.priorHidden });
   }
+  if ( gate ) await restoreHiddenCombatants(gate.combatantHides);
   await clearPerceptionGate(ref.sceneId, ref.tokenId);
   await setHiddenPerceptionDC(ref.sceneId, ref.tokenId, null);
   syncPerceptionTokens();
@@ -139,6 +180,9 @@ export async function revealGloballyAction(tokenDoc) {
   if ( gate && gate.hiddenByModule && (tokenDoc.hidden === true) ) {
     await tokenDoc.update({ hidden: !!gate.priorHidden });
   }
+  // Global reveal shows the token to everyone, so the tracker row should return
+  // too: unhide exactly the combatant rows the module hid (F1).
+  if ( gate ) await restoreHiddenCombatants(gate.combatantHides);
   // Lyra 0.2.0 audit #2: a token the GM had hidden BEFORE the gate stays hidden
   // (priorHidden retained, not module-owned), so "Reveal Globally" can't expose
   // it. Tell the GM so the button label doesn't promise more than it can do.

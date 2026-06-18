@@ -2,7 +2,7 @@
   "id": "pf15-discovery-veil",
   "title": "PF1.5 Discovery Veil",
   "description": "Skill-gated discovery for PF1.5: a GM marks creatures undetected (revealed per-player by Perception), and non-player spellcasting is masked as a generic notice until a player succeeds at Spellcraft. Presentation-layer, with GM secrets kept off replicated surfaces.",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "socket": true,
   "compatibility": {
     "minimum": "13.350",

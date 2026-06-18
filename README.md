@@ -73,8 +73,11 @@ This module treats discovery as table-facing presentation control, not adversari
 
 ## Current Status
 
-Version `0.7.0` (Foundry `13.350` / PF1 `11.11`):
+Version `0.7.1` (Foundry `13.350` / PF1 `11.11`):
 
+- **Tracker leak fix (0.7.1)** — an undetected creature that is also a combatant now has its
+  combat-tracker row hidden from players too (previously the gate hid only the canvas token);
+  the row is restored on reveal/clear.
 - **Perception Gate (0.2.0)** — runtime-verified two-client (`docs/0.2.0-RUNTIME-VERIFY.md`).
 - **Perception roll requests (0.3.0)** — runtime-verified end-to-end over socketlib (`docs/0.3.0-RUNTIME-VERIFY.md`).
 - **0.3.1** — dialog readability/width fix.

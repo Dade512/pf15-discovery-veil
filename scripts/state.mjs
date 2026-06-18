@@ -248,22 +248,27 @@ export function getPerceptionGate(sceneId, tokenId) {
  * Create/replace a perception gate marking a token undetected. Records the
  * token's PRIOR native hidden value and that the module owns the hide (Lyra
  * F-6) so a later clear can restore correctly. Does NOT write the TokenDocument
- * — the caller performs the native hidden write.
+ * — the caller performs the native hidden write. `combatantHides` lists the
+ * Combatant ids the caller hid in the combat tracker (safe ids only, never a
+ * secret) so clear/reveal restore exactly those rows (F1: an undetected
+ * creature in combat must not leak via the tracker).
  * @param {string} sceneId
  * @param {string} tokenId
- * @param {{priorHidden?:boolean, hiddenByModule?:boolean}} [opts]
+ * @param {{priorHidden?:boolean, hiddenByModule?:boolean, combatantHides?:string[]}} [opts]
  * @returns {Promise<boolean>}
  */
-export async function markUndetected(sceneId, tokenId, { priorHidden = false, hiddenByModule = true } = {}) {
+export async function markUndetected(sceneId, tokenId, { priorHidden = false, hiddenByModule = true, combatantHides = [] } = {}) {
   const key = perceptionKey(sceneId, tokenId);
   if ( !key ) return false;
+  const hides = Array.isArray(combatantHides) ? combatantHides.filter(id => typeof id === "string") : [];
   return updatePublicRegistry(reg => {
     const prev = reg.perception[key];
     reg.perception[key] = {
       state: "undetected",
       spottedBy: (prev && typeof prev.spottedBy === "object") ? prev.spottedBy : {},
       priorHidden: !!priorHidden,
-      hiddenByModule: !!hiddenByModule
+      hiddenByModule: !!hiddenByModule,
+      combatantHides: hides
     };
     return true;
   }, "markUndetected");
