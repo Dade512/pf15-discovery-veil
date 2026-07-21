@@ -1,0 +1,40 @@
+name: Build and Release Module
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: tag
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build module zip
+        run: |
+          mkdir -p build/pf15-discovery-veil/scripts build/pf15-discovery-veil/styles build/pf15-discovery-veil/lang
+          cp module.json build/pf15-discovery-veil/
+          cp scripts/*.mjs build/pf15-discovery-veil/scripts/
+          cp styles/*.css build/pf15-discovery-veil/styles/ 2>/dev/null || true
+          cp lang/*.json build/pf15-discovery-veil/lang/
+          [ -f README.md ] && cp README.md build/pf15-discovery-veil/
+          cd build && zip -r ../pf15-discovery-veil.zip pf15-discovery-veil/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.tag.outputs.version }}
+          body: |
+            **v${{ steps.tag.outputs.version }}**
+
+            See the [README changelog](https://github.com/Dade512/pf15-discovery-veil/blob/main/README.md#changelog) for the full list of changes in this release.
+          files: |
+            pf15-discovery-veil.zip
+            module.json
