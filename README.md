@@ -75,8 +75,17 @@ This module treats discovery as table-facing presentation control, not adversari
 
 ## Current Status
 
-Version `0.7.4` (Foundry `13.350` / PF1 `11.11`):
+Version `0.7.6` (Foundry `13.350` / PF1 `11.11`):
 
+- **Relay-failure feedback (0.7.6)** — if a player's Perception/Spellcraft roll result can't reach
+  the GM (e.g. the GM disconnected or reloaded in the window between the roll firing and the relay
+  landing), the roller is now warned that it may not have gone through and to try again — instead of
+  the result vanishing silently. Previously the relay was an unawaited `executeAsGM` whose rejection
+  surfaced to no one. Fix lives in the shared `createSkillBroker` factory, so both request flows get
+  it. Two-seat live-probe verified on the Perception path (`docs/0.7.6-RUNTIME-VERIFY.md`).
+- **socketlib version floor (0.7.5)** — the manifest now declares a minimum socketlib version
+  (`≥ 1.0.0`) under `relationships.requires`, so Foundry flags an outdated socketlib up front rather
+  than failing obscurely at runtime. Manifest-only; no behavior change.
 - **Broker refactor (0.7.4)** — the Perception (0.3.0) and Spellcraft (0.5.0) request flows, which
   were ~95% duplicated, now share one `createSkillBroker` factory (`scripts/skill-request.mjs`); the
   two broker files are thin config wrappers describing only their differences (skill key, trained

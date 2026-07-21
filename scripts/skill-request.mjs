@@ -241,6 +241,9 @@ export function createSkillBroker(config) {
         actorId: actor.id,
         actorName: actor.name,
         total
+      }).catch(err => {
+        console.error(`${MODULE_ID} | ${config.label} result relay failed`, err);
+        ui.notifications?.warn(game.i18n.format("PF15DV.Notify.ResultRelayFailed", { label: config.label }));
       });
     };
     Hooks.on("pf1ActorRollSkill", handler);
