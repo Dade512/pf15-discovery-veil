@@ -7,3 +7,11 @@ module.zip
 
 # External audit artifact (kept local, out of git scope)
 lyras_audit.md
+
+# Agent operating instructions (local-only, matches baphomet-utils convention)
+AGENTS.md
+
+# Council goal docs + evidence (local only, matches baphomet-utils convention)
+GOAL_v*.md
+COMPLETED_GOAL_*.md
+docs/
