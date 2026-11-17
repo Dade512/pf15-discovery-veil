@@ -36,3 +36,43 @@ export function combatantHidePlan({ gate, combatantHidden }) {
 export function shouldPrivatizeInitiative({ isInitiative, gateState, whisperCount }) {
   return !!isInitiative && (gateState === "undetected") && (whisperCount === 0);
 }
+
+/** Values of the spellMaskScope world setting (0.7.8, TD-46). */
+export const SPELL_MASK_SCOPES = ["hostile", "hostileNeutral", "allNonPlayer"];
+
+/**
+ * Whether a cast should be masked (0.7.8, TD-46). Ownership is the floor: a
+ * player-owned caster is never masked. An unknown disposition stays masked
+ * (fail secret). SECRET (-2) counts as hostile. An unknown scope string is
+ * treated as the default, "hostile".
+ * @param {{hasPlayerOwner: boolean, disposition: number|null, scope: string}} args
+ * @returns {boolean}
+ */
+export function isMaskableCaster({ hasPlayerOwner, disposition, scope }) {
+  if ( hasPlayerOwner ) return false;
+  if ( scope === "allNonPlayer" ) return true;
+  if ( !Number.isFinite(disposition) ) return true;
+  if ( scope === "hostileNeutral" ) return disposition <= 0;
+  return disposition <= -1;
+}
+
+/**
+ * The caster's token disposition, or null. Tries the action's token, the
+ * actor's synthetic token, the actor's first active token on the viewed scene,
+ * then the prototype token. A placeable or a document is accepted.
+ * // ⚠️ UNCONFIRMED PATH — verify: pf1 11.11 ActionUse#token shape (probe R2).
+ * @param {object|null} actionUse
+ * @param {object|null} actor
+ * @returns {number|null}
+ */
+export function casterDisposition(actionUse, actor) {
+  let active = null;
+  try { active = actor?.getActiveTokens?.(false, true)?.[0] ?? null; }
+  catch ( _ ) { active = null; }
+  for ( const candidate of [actionUse?.token, actor?.token, active, actor?.prototypeToken] ) {
+    const doc = candidate?.document ?? candidate;
+    const d = doc?.disposition;
+    if ( Number.isFinite(d) ) return d;
+  }
+  return null;
+}

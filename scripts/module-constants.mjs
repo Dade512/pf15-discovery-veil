@@ -4,6 +4,7 @@ export const SETTINGS = {
   perceptionEnabled: "perceptionEnabled",
   spellcraftEnabled: "spellcraftEnabled",
   spellPublicEffect: "spellPublicEffect",
+  spellMaskScope: "spellMaskScope",
   debugLogging: "debugLogging",
   publicRegistry: "publicRegistry",
   privateStore: "privateStore"

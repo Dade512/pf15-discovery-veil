@@ -28,6 +28,7 @@ import {
   clearSpellGate, clearHiddenSpellIdentity
 } from "./state.mjs";
 import { openSpellcraftRequestDialog } from "./spellcraft-requests.mjs";
+import { isMaskableCaster, casterDisposition } from "./gate-rules.mjs";
 
 /** Debug log, gated on the module's debugLogging client setting. */
 function dlog(...args) {
@@ -82,7 +83,12 @@ export function onPreActionUse(actionUse) {
     const item = actionUse?.item;
     const actor = actionUse?.actor;
     if ( !item || (item.type !== "spell") ) return;                  // spells only
-    if ( !actor || actor.hasPlayerOwner ) return;                    // non-player casters only
+    if ( !actor ) return;
+    if ( !isMaskableCaster({                                         // 0.7.8 caster scope (TD-46)
+      hasPlayerOwner: actor.hasPlayerOwner,
+      disposition: casterDisposition(actionUse, actor),
+      scope: game.settings.get(MODULE_ID, SETTINGS.spellMaskScope)
+    }) ) return;
     if ( maskedCasts.has(actionUse) ) return;                        // already handled
 
     const castId = foundry.utils.randomID();

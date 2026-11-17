@@ -1,5 +1,6 @@
 import { MODULE_ID, SETTINGS, SCHEMA_VERSION } from "./module-constants.mjs";
 import { syncPerceptionTokens } from "./rendering.mjs";
+import { SPELL_MASK_SCOPES } from "./gate-rules.mjs";
 
 export function registerSettings() {
   game.settings.register(MODULE_ID, SETTINGS.perceptionEnabled, {
@@ -20,16 +21,32 @@ export function registerSettings() {
     default: false
   });
 
+  // 0.7.8 caster scope (TD-46): which non-player casters get masked. Hostile by
+  // default; SECRET counts as hostile; player-owned casters are never masked.
+  game.settings.register(MODULE_ID, SETTINGS.spellMaskScope, {
+    name: "PF15DV.Settings.SpellMaskScope.Name",
+    hint: "PF15DV.Settings.SpellMaskScope.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      [SPELL_MASK_SCOPES[0]]: "PF15DV.Settings.SpellMaskScope.Hostile",
+      [SPELL_MASK_SCOPES[1]]: "PF15DV.Settings.SpellMaskScope.HostileNeutral",
+      [SPELL_MASK_SCOPES[2]]: "PF15DV.Settings.SpellMaskScope.AllNonPlayer"
+    },
+    default: "hostile"
+  });
+
   // 0.7.0 stripped public mechanics: when ON, the generic masked-spell card also
   // shows the save type / attack / damage indicators (never the name, school,
-  // DC, or damage amount). Off by default — opting in is a per-table call.
+  // DC, or damage amount). On by default since 0.7.8 (TD-46 b).
   game.settings.register(MODULE_ID, SETTINGS.spellPublicEffect, {
     name: "PF15DV.Settings.SpellPublicEffect.Name",
     hint: "PF15DV.Settings.SpellPublicEffect.Hint",
     scope: "world",
     config: true,
     type: Boolean,
-    default: false
+    default: true
   });
 
   game.settings.register(MODULE_ID, SETTINGS.debugLogging, {
