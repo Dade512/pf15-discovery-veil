@@ -20,7 +20,7 @@ Hooks.once("ready", () => {
   initializeStateApi();
   // 0.6.0: surface the GM panel opener on the console API.
   if ( globalThis.pf15DiscoveryVeil ) globalThis.pf15DiscoveryVeil.openPanel = openDiscoveryPanel;
-  console.log(`${MODULE_ID} | PF1.5 Discovery Veil ready (0.7.6 perception gate + roll requests + spell identification + shared discovery panel + stripped effects)`);
+  console.log(`${MODULE_ID} | PF1.5 Discovery Veil ready (0.7.8 perception gate + ambush combat gate + roll requests + spell identification + shared discovery panel + stripped effects)`);
 });
 
 Hooks.once("socketlib.ready", () => {

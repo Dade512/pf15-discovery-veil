@@ -6,8 +6,8 @@ Two related table workflows:
 
 - **Hidden creature discovery (live, 0.2.0):** the GM marks a creature *undetected*; players who have personally spotted it (or after a manual global reveal) can see it, while others cannot. The GM always sees the true token.
 - **Perception roll requests (live, 0.3.0):** the GM can ask chosen players to roll Perception against a hidden DC; a success marks that player as having spotted the creature, and the DC never leaves the GM.
-- **Spell identification (live, 0.5.0):** non-player spellcasting is shown to players as a generic "a spell is being cast" notice; the true identity stays on the active GM's client until a player succeeds at a Spellcraft check, after which the GM can reveal it.
-- **Stripped public effect (opt-in, 0.7.0):** the masked spell card can optionally show a non-identifying save / spell-attack / deals-damage cue — never the name, school, DC, or amounts.
+- **Spell identification (live, 0.5.0):** hostile non-player spellcasting (configurable since 0.7.8) is shown to players as a generic "a spell is being cast" notice; the true identity stays on the active GM's client until a player succeeds at a Spellcraft check, after which the GM can reveal it.
+- **Stripped public effect (0.7.0; on by default since 0.7.8):** the masked spell card can show a non-identifying save / spell-attack / deals-damage cue — never the name, school, DC, or amounts.
 - **Shared discovery panel (0.6.0):** a GM-only window listing every active gate — undetected creatures and masked spell casts — in one place, with per-player status and the reveal/request/clear actions consolidated.
 
 ## Installation
@@ -28,11 +28,15 @@ After installing, enable **PF1.5 Discovery Veil** in **Manage Modules**, then tu
 
 This module treats discovery as table-facing presentation control, not adversarial anti-cheat security. Anything that must stay truly secret from players lives only on the active GM client and is never written into world/user settings, actor/token/scene/combatant flags, chat messages, or socket payloads.
 
+Whispers are private at the table, not from a browser console: Foundry 13 delivers every whisper to every connected client and only declines to draw it. Treat anything the module whispers (the Spellcraft reveal) as table-private.
+
 ## Perception Gate (0.2.0)
 
 - GM-only Token-HUD controls: **Mark Undetected**, **Manage who has spotted this**, **Reveal to all players**, **Clear discovery gate**.
 - The base hide uses Foundry's native token `hidden` flag (the GM still sees it). The module records the token's prior hidden state and only restores it on clear/reveal — it never unhides a token you had already hidden for another reason.
 - Spotted players see the creature via a per-client display override; the public registry stores only safe state (gate existence, who has spotted, prior-hidden/ownership flags) — never hidden DCs or identities.
+- **Combat (0.7.8):** an undetected creature's **initiative roll is posted GM-only** automatically, however it is rolled (pf1's dialog, skip-dialog, or "roll NPCs"); players see "*GM* privately rolled some dice". A combatant added **after** you mark the token is recorded too, so **Reveal to all** and **Clear** bring its tracker row back.
+- **Limit:** a player who has spotted the creature sees the token, but **not its combat-tracker row**, until you Reveal to all. Foundry never sends a hidden combatant to a player's tracker.
 - Enable in **Manage Modules**, then turn on the **"Enable Perception Reveals"** setting.
 
 ## Perception Roll Requests (0.3.0)
@@ -43,7 +47,7 @@ This module treats discovery as table-facing presentation control, not adversari
 
 ## Spell Identification (0.5.0)
 
-- When a creature **not owned by any player** casts a spell, the player-facing spell card is
+- When a **hostile** creature **not owned by any player** casts a spell, the player-facing spell card is
   suppressed at creation (PF1 `pf1PreDisplayActionUse`) and replaced with a generic **"A spell is
   being cast."** notice. The real card is never created, so nothing is deleted and nothing leaks.
 - The true identity (name, school, item uuid, level) and a hidden Spellcraft DC (**15 + spell
@@ -51,14 +55,23 @@ This module treats discovery as table-facing presentation control, not adversari
   GM-only annotation on the card.
 - The GM clicks **"Request Spellcraft"** to ask eligible players (a player-owned PC **trained in
   Spellcraft**, `spl.rank ≥ 1`). On a success the roller is privately told the spell's **name and
-  school** (a whisper only they and the GM can see); the GM can then reveal it to everyone.
+  school** (a whisper: only they and the GM see it in chat, but every connected client receives the
+  message, so it is private at the table, not from a browser console); the GM can then reveal it to
+  everyone.
+- **Who gets masked (0.7.8):** the **"Mask Spells From"** setting picks the casters — **hostile
+  creatures only** (default), hostile and neutral, or every non-player caster (the pre-0.7.8
+  behaviour). Secret-disposition tokens count as hostile. Player-owned casters are never masked.
+- **Limits:** masking happens only when a **GM's client** performs the cast. The generic card's
+  speaker is the **true caster**, so pair this module with PF1.5 Identity Mask and **mask an unseen
+  caster's identity before it casts**. A cast that is cancelled (for example by an item script)
+  posts nothing; **Clear** in the Discovery panel also deletes that cast's generic card.
 - Enable the **"Enable Spellcraft Reveals"** setting (off by default).
-- **Stripped public effect (0.7.0, opt-in):** turn on **"Show Masked Spell Effect"** to also show
+- **Stripped public effect (0.7.0; on by default since 0.7.8):** **"Show Masked Spell Effect"** also shows
   players a non-identifying effect line on the generic card — the **save type**
   (Fortitude/Reflex/Will), whether it's a **spell attack**, and whether it **deals damage** — so they
   know what to brace for. The spell's **name, school, save DC, and damage amount are never shown.**
-  Off by default, because the save type narrows which spell it could be; enable it only if your table
-  accepts that hint.
+  On by default since 0.7.8; the save type narrows which spell it could be, so turn it off if your
+  table would rather not have that hint.
 
 ## Shared Discovery Panel (0.6.0)
 
@@ -75,8 +88,27 @@ This module treats discovery as table-facing presentation control, not adversari
 
 ## Current Status
 
-Version `0.7.6` (Foundry `13.350` / PF1 `11.11`):
+Version `0.7.8` (Foundry `13.351` / PF1 `11.11`):
 
+- **What the Dark Rolls (0.7.8)** — ambush and cast-lifecycle fixes from the 2026-11-16 facts check:
+  - **Initiative card (TD-45):** pf1's initiative dialog posted an undetected creature's roll
+    **publicly under its true name**. It is now made GM-only automatically.
+  - **Tracker rows (TD-45):** a combatant created after the mark was hidden by Foundry but never
+    recorded, so **Reveal to all** left its tracker row hidden. Late combatants are now recorded and
+    restored. A spotted player still doesn't get the row back before a global reveal (documented
+    limit above).
+  - **Caster scope (TD-46):** new **"Mask Spells From"** setting, **hostile only by default**.
+    **Behaviour change:** friendly and neutral NPC casts are **no longer masked** unless you choose
+    "Every non-player caster". **"Show Masked Spell Effect"** is now on by default for new worlds.
+  - **Cast lifecycle (TD-08):** the generic card, gate and identity are now written only once the
+    cast actually displays, so a cancelled cast leaves no false card behind; **Clear** also deletes
+    the cast's generic card.
+  - **Docs:** whispers are private at the table, not from a browser console (the reveal whisper was
+    described as visible to only the earner and GM).
+  - **Release gates:** the release workflow now checks the tag/version match, script syntax,
+    `lang/en.json`, a node test suite (`node --test "tests/*.test.mjs"`), the download URL and the
+    zip contents before publishing.
+- **0.7.7** — manifest download URL fixed to match the release asset (`pf15-discovery-veil.zip`).
 - **Relay-failure feedback (0.7.6)** — if a player's Perception/Spellcraft roll result can't reach
   the GM (e.g. the GM disconnected or reloaded in the window between the roll firing and the relay
   landing), the roller is now warned that it may not have gone through and to try again — instead of
