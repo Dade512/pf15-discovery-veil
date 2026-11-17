@@ -1,17 +1,20 @@
 /**
  * pf15-discovery-veil — 0.5.0 Spell Identification (non-player casting mask).
  *
- * Flow (characterized live in docs/0.4.0-PROBE.md):
+ * Flow (characterized live in docs/0.4.0-PROBE.md; lifecycle moved in 0.7.8):
  *  1. A non-player (GM-controlled) actor casts a spell. `pf1PreActionUse` fires
- *     on the GM client BEFORE PF1 builds the player-visible card.
- *  2. We suppress that card using PF1's native `shared.scriptData.hideChat`
- *     (source-confirmed: `postMessage()` short-circuits before
- *     `ChatMessage.create`). The real card document is never created → nothing
- *     to leak, nothing to delete. We do NOT return false (that would cancel the
- *     whole action and its mechanics).
- *  3. The true identity (name/school/uuid/level + derived Spellcraft DC =
- *     15 + level) is stored ONLY on the active-GM client (private localStorage
- *     store). A generic "A spell is being cast." card is posted publicly.
+ *     on the GM client; a cast in scope (caster ownership + spellMaskScope) is
+ *     only TAGGED there. Nothing is stored or posted yet, because the cast can
+ *     still be cancelled after this hook (another handler, or a script call's
+ *     reject).
+ *  2. `pf1PreDisplayActionUse` fires inside postMessage(), after every cancel
+ *     point and after charges are spent, immediately before ChatMessage.create.
+ *     For a tagged cast we return false there, so the real card document is
+ *     never created → nothing to leak, nothing to delete; mechanics are intact.
+ *  3. In the same hook the true identity (name/school/uuid/level + derived
+ *     Spellcraft DC = 15 + level) is stored ONLY on the active-GM client
+ *     (private localStorage store), and a generic "A spell is being cast." card
+ *     is posted publicly.
  *  4. The GM requests Spellcraft from eligible PCs (see spellcraft-requests.mjs);
  *     on a success the earner is told the name + school via a Foundry-filtered
  *     whisper. The GM can reveal it to everyone.
@@ -56,18 +59,21 @@ function genericLabel() {
  * ActionUse instances we are masking → their castId. Keyed by the live
  * ActionUse object (the SAME instance is passed to both pf1PreActionUse and
  * pf1PreDisplayActionUse), so PF1 cannot clobber it the way it rebuilds
- * `shared.scriptData`. This is why suppression must happen at
- * pf1PreDisplayActionUse, not via scriptData.hideChat set at pf1PreActionUse
- * (executeScriptCalls() runs after pf1PreActionUse and resets scriptData).
+ * `shared.scriptData`. Suppression and every side effect happen at
+ * pf1PreDisplayActionUse (0.7.8, TD-08): a cast cancelled after the tag leaves
+ * no card, gate or identity, and its WeakMap entry is simply collected.
  */
 const maskedCasts = new WeakMap();
+
+/** Tagged casts whose side effects already ran (a repeat display call only suppresses). */
+const postedCasts = new WeakSet();
 
 /* ---------- detection + suppression (active-GM) ---------- */
 
 /**
- * pf1PreActionUse handler. If a non-player actor is casting a spell and the
- * feature is enabled, suppress the real card and mask the cast. MUST NOT return
- * false (that cancels the action).
+ * pf1PreActionUse handler. If an in-scope non-player actor is casting a spell
+ * and the feature is enabled, tag the cast for masking. MUST NOT return false
+ * (that cancels the action).
  * @param {object} actionUse  the PF1 ActionUse instance
  */
 export function onPreActionUse(actionUse) {
@@ -91,13 +97,31 @@ export function onPreActionUse(actionUse) {
     }) ) return;
     if ( maskedCasts.has(actionUse) ) return;                        // already handled
 
-    const castId = foundry.utils.randomID();
+    // Tag only (0.7.8): the side effects wait for pf1PreDisplayActionUse.
+    maskedCasts.set(actionUse, foundry.utils.randomID());
+  } catch ( err ) {
+    console.error(`${MODULE_ID} | onPreActionUse error`, err);
+  }
+  // return undefined — never false
+}
 
-    // Mark this cast for suppression at pf1PreDisplayActionUse (the reliable
-    // pre-ChatMessage.create point). Do NOT set scriptData.hideChat here — it is
-    // clobbered by executeScriptCalls() which runs after this hook.
-    maskedCasts.set(actionUse, castId);
-
+/**
+ * pf1PreDisplayActionUse handler. Fires inside postMessage(), after the
+ * mechanics/script-calls have run, immediately before ChatMessage.create.
+ * For a tagged cast: store the identity, write the masked gate and post the
+ * generic card (async), then return false so ONLY the player-facing card is
+ * suppressed (the document is never created; mechanics are intact).
+ * @param {object} actionUse
+ * @returns {boolean|undefined}  false to suppress a masked cast's card
+ */
+export function onPreDisplayActionUse(actionUse) {
+  if ( !maskedCasts.has(actionUse) ) return;
+  const castId = maskedCasts.get(actionUse);
+  if ( postedCasts.has(actionUse) ) return false;
+  postedCasts.add(actionUse);
+  try {
+    const item = actionUse.item;
+    const actor = actionUse.actor;
     const lvl = Number(item.system?.level);
     const spellLevel = Number.isFinite(lvl) ? lvl : 0;
     const identity = {
@@ -126,24 +150,10 @@ export function onPreActionUse(actionUse) {
       }
     })().catch(err => console.error(`${MODULE_ID} | spell mask failed`, err));
   } catch ( err ) {
-    console.error(`${MODULE_ID} | onPreActionUse error`, err);
+    console.error(`${MODULE_ID} | onPreDisplayActionUse error`, err);
   }
-  // return undefined — never false
-}
-
-/**
- * pf1PreDisplayActionUse handler. Fires inside postMessage(), after the
- * mechanics/script-calls have run, immediately before ChatMessage.create.
- * Returning false here suppresses ONLY the player-facing card (the document is
- * never created → nothing to leak, nothing to delete; mechanics are intact).
- * @param {object} actionUse
- * @returns {boolean|undefined}  false to suppress a masked cast's card
- */
-export function onPreDisplayActionUse(actionUse) {
-  if ( maskedCasts.has(actionUse) ) {
-    dlog("suppressing player card for masked cast", maskedCasts.get(actionUse));
-    return false;
-  }
+  dlog("suppressing player card for masked cast", castId);
+  return false;
 }
 
 /**
@@ -284,7 +294,9 @@ export async function revealSpellToUser(castId, userId) {
 
 /**
  * Clear a masked cast entirely: remove its safe public gate AND, on the active
- * GM, its private identity. Used by the 0.6.0 discovery panel's "Clear" action.
+ * GM, its private identity, AND (0.7.8, TD-08) delete its generic card. Only
+ * the "maskedSpell" card is deleted; a reveal whisper for the same cast stays.
+ * Used by the 0.6.0 discovery panel's "Clear" action.
  * Non-active GMs can still remove the public gate (the identity, which only ever
  * lived on the active GM's client, is cleared there).
  * @param {string} castId
@@ -295,7 +307,17 @@ export async function clearSpellMask(castId) {
   const publicCleared = await clearSpellGate(castId);
   let privateCleared = false;
   if ( isActiveGMClient() ) privateCleared = await clearHiddenSpellIdentity(castId);
-  return publicCleared || privateCleared;
+  let cardCleared = false;
+  if ( game.user?.isGM ) {
+    const ids = (game.messages ?? [])
+      .filter(m => (m?.flags?.[MODULE_ID]?.castId === castId) && (m.flags[MODULE_ID].kind === "maskedSpell"))
+      .map(m => m.id);
+    if ( ids.length ) {
+      await ChatMessage.implementation.deleteDocuments(ids);
+      cardCleared = true;
+    }
+  }
+  return publicCleared || privateCleared || cardCleared;
 }
 
 /**
