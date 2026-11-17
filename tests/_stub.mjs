@@ -32,7 +32,8 @@ export function installStub({
     messages,
     settings: {
       get: (_module, key) => structuredClone(store[key]),
-      set: async (_module, key, value) => { writes++; store[key] = structuredClone(value); return value; }
+      // Commits after a tick, like a real server round-trip, so same-tick races show.
+      set: async (_module, key, value) => { await new Promise(r => setTimeout(r, 0)); writes++; store[key] = structuredClone(value); return value; }
     },
     i18n: { localize: k => k, format: k => k }
   };

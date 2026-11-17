@@ -98,8 +98,10 @@ Version `0.7.8` (Foundry `13.351` / PF1 `11.11`):
     restored. A spotted player still doesn't get the row back before a global reveal (documented
     limit above).
   - **Caster scope (TD-46):** new **"Mask Spells From"** setting, **hostile only by default**.
-    **Behaviour change:** friendly and neutral NPC casts are **no longer masked** unless you choose
-    "Every non-player caster". **"Show Masked Spell Effect"** is now on by default for new worlds.
+    **Behaviour change on upgrade, in every world:** the new setting starts at hostile, so friendly
+    and neutral NPC casts are **no longer masked** unless you choose "Every non-player caster".
+    **"Show Masked Spell Effect"** now defaults to on, which also turns it on in any existing world
+    that never changed it. Check both settings after updating.
   - **Cast lifecycle (TD-08):** the generic card, gate and identity are now written only once the
     cast actually displays, so a cancelled cast leaves no false card behind; **Clear** also deletes
     the cast's generic card.

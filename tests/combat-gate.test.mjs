@@ -82,3 +82,11 @@ test("player client never rewrites", () => {
   onPreCreateChatMessage(m, {}, {}, "u1");
   assert.equal(m.calls.length, 0);
 });
+
+test("combatants created in one batch are all recorded", async () => {
+  const stub = seeded();
+  const a = { ...combatant(true), id: "cA" };
+  const b = { ...combatant(true), id: "cB" };
+  await Promise.all([onCreateCombatant(a, {}, "gm"), onCreateCombatant(b, {}, "gm")]);
+  assert.deepEqual(stub.registry().perception["S1:T1"].combatantHides.sort(), ["cA", "cB"]);
+});

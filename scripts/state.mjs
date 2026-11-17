@@ -127,7 +127,19 @@ export function readPublicRegistry() {
  * @param {string} [context]
  * @returns {Promise<boolean>}
  */
-export async function updatePublicRegistry(mutate, context = "publicRegistry") {
+export function updatePublicRegistry(mutate, context = "publicRegistry") {
+  // 0.7.8: serialise writes. Each mutate reads the registry only after the
+  // previous write has landed, so same-tick writers (one createCombatant per
+  // token when several are added to combat at once) can't overwrite each other.
+  const run = registryWriteChain.then(() => writePublicRegistry(mutate, context));
+  registryWriteChain = run.catch(() => false);
+  return run;
+}
+
+/** Tail of the serialised public-registry write queue (this client only). */
+let registryWriteChain = Promise.resolve();
+
+async function writePublicRegistry(mutate, context) {
   if ( !game.user?.isGM ) {
     console.warn(`${MODULE_ID} | public registry write refused: not a GM (${context})`);
     return false;

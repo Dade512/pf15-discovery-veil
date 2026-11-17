@@ -31,7 +31,8 @@ test("hostile caster is masked", async () => {
   await flush();
 });
 
-const flush = () => new Promise(r => setTimeout(r, 0));
+// Several sequential registry/private-store writes, each a tick in the stub.
+const flush = async () => { for ( let i = 0; i < 10; i++ ) await new Promise(r => setTimeout(r, 0)); };
 
 test("cancelled cast leaves no card or gate", async () => {
   const stub = installStub({ settings: SETTINGS });
