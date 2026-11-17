@@ -6,6 +6,7 @@ import { onDrawToken, onRefreshToken } from "./rendering.mjs";
 import { registerPerceptionSocket } from "./perception-requests.mjs";
 import { onPreActionUse, onPreDisplayActionUse, onRenderChatMessageHTML } from "./spell-identification.mjs";
 import { registerSpellcraftSocket } from "./spellcraft-requests.mjs";
+import { onCreateCombatant, onPreCreateChatMessage } from "./combat-gate.mjs";
 import {
   openDiscoveryPanel, registerDiscoveryPanelControls, registerDiscoveryPanelKeybinding
 } from "./discovery-panel.mjs";
@@ -30,6 +31,10 @@ Hooks.once("socketlib.ready", () => {
 Hooks.on("renderTokenHUD", onRenderTokenHUD);
 Hooks.on("drawToken", onDrawToken);
 Hooks.on("refreshToken", onRefreshToken);
+
+// 0.7.8 ambush gate: record late combatants; GM-only initiative for undetected creatures.
+Hooks.on("createCombatant", onCreateCombatant);
+Hooks.on("preCreateChatMessage", onPreCreateChatMessage);
 
 // 0.5.0 spell identification: detect non-player casts before the player card,
 // and add GM-only enhancements to the generic card.

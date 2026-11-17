@@ -275,6 +275,31 @@ export async function markUndetected(sceneId, tokenId, { priorHidden = false, hi
 }
 
 /**
+ * Record a combat-tracker row the module must restore on reveal/clear (0.7.8,
+ * TD-45 d): a combatant created after the mark. Only for an "undetected" gate;
+ * an id already recorded is not added twice. Safe ids only.
+ * @param {string} sceneId
+ * @param {string} tokenId
+ * @param {string} combatantId
+ * @returns {Promise<boolean>}  true if the id was added
+ */
+export async function addCombatantHide(sceneId, tokenId, combatantId) {
+  const key = perceptionKey(sceneId, tokenId);
+  if ( !key || (typeof combatantId !== "string") || !combatantId ) return false;
+  const gate = readPublicRegistry().perception[key];
+  if ( !gate || (gate.state !== "undetected") ) return false;
+  if ( Array.isArray(gate.combatantHides) && gate.combatantHides.includes(combatantId) ) return false;
+  return updatePublicRegistry(reg => {
+    const entry = reg.perception[key];
+    if ( !entry || (entry.state !== "undetected") ) return false;
+    if ( !Array.isArray(entry.combatantHides) ) entry.combatantHides = [];
+    if ( entry.combatantHides.includes(combatantId) ) return false;
+    entry.combatantHides.push(combatantId);
+    return true;
+  }, "addCombatantHide");
+}
+
+/**
  * Record that a user (the person at the screen) has personally spotted the
  * token. Render allowlist is keyed by userId; safe actor attribution is stored
  * alongside for the GM panel (Lyra F-7). Player-safe only.
