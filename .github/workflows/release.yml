@@ -17,15 +17,25 @@ jobs:
         id: tag
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Release gates (version, syntax, tests, download URL)
+        run: bash tools/release-check.sh "${{ steps.tag.outputs.version }}"
+
       - name: Build module zip
         run: |
           mkdir -p build/pf15-discovery-veil/scripts build/pf15-discovery-veil/styles build/pf15-discovery-veil/lang
           cp module.json build/pf15-discovery-veil/
           cp scripts/*.mjs build/pf15-discovery-veil/scripts/
-          cp styles/*.css build/pf15-discovery-veil/styles/ 2>/dev/null || true
+          cp styles/*.css build/pf15-discovery-veil/styles/
           cp lang/*.json build/pf15-discovery-veil/lang/
           [ -f README.md ] && cp README.md build/pf15-discovery-veil/
           cd build && zip -r ../pf15-discovery-veil.zip pf15-discovery-veil/
+
+      - name: Release gates (zip contents)
+        run: bash tools/release-check.sh --zip pf15-discovery-veil.zip
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -34,7 +44,7 @@ jobs:
           body: |
             **v${{ steps.tag.outputs.version }}**
 
-            See the [README changelog](https://github.com/Dade512/pf15-discovery-veil/blob/main/README.md#changelog) for the full list of changes in this release.
+            See the [README changelog](https://github.com/Dade512/pf15-discovery-veil/blob/main/README.md#current-status) for the full list of changes in this release.
           files: |
             pf15-discovery-veil.zip
             module.json
