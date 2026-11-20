@@ -28,6 +28,7 @@ export const CSS = {
   cardButton: "pf15dv-card-button",
   gmNote: "pf15dv-gm-note",
   gmMechanics: "pf15dv-gm-mechanics",
+  requestButton: "pf15dv-request-spellcraft",
   spellEffect: "pf15dv-spell-effect",
   panel: "pf15dv-panel"
 };

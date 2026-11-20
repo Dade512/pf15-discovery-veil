@@ -108,11 +108,12 @@ test("a friendly cast keeps its roll mode", () => {
   assert.equal(a.shared.rollMode, "publicroll");
 });
 
-test("a cast with chatMessage false masks nothing", async () => {
+test("a cast with chatMessage false masks nothing but keeps its dice GM-only", async () => {
   const stub = installStub({ settings: SETTINGS });
   const a = au(-1);
   a.shared.chatMessage = false;
   spell.onPreActionUse(a);
+  assert.equal(a.shared.rollMode, "gmroll");
   assert.equal(spell.onPreDisplayActionUse(a), undefined);
   await flush();
   assert.equal(stub.created.length, 0);
@@ -159,4 +160,38 @@ test("a non-active GM's masked cast stores no mechanics", async () => {
   assert.equal(spell.onPreDisplayActionUse(a), false);
   await flush();
   assert.deepEqual(game.settings.get(ID, "privateStore").worlds, {});
+});
+
+/* Minimal DOM for onRenderChatMessageHTML: createElement, classList, class selectors. */
+class FakeEl {
+  constructor(tag) {
+    this.tagName = tag; this.children = []; this.textContent = ""; this.listeners = {};
+    const set = new Set();
+    this.classList = { add: (...c) => c.forEach(x => set.add(x)), contains: c => set.has(c) };
+  }
+  appendChild(c) { this.children.push(c); return c; }
+  addEventListener(t, f) { this.listeners[t] = f; }
+  querySelectorAll(sel) {
+    const cls = sel.slice(1); const out = [];
+    const walk = e => { for ( const c of e.children ) { if ( c.classList.contains(cls) ) out.push(c); walk(c); } };
+    walk(this); return out;
+  }
+  querySelector(sel) { return this.querySelectorAll(sel)[0] ?? null; }
+}
+
+test("a damaging masked card keeps its Request Spellcraft button", async () => {
+  const stub = installStub({ settings: SETTINGS });
+  globalThis.HTMLElement = FakeEl;
+  globalThis.document = { createElement: t => new FakeEl(t) };
+  const a = au(-1, false, makeShared());
+  spell.onPreActionUse(a);
+  spell.onPreDisplayActionUse(a);
+  await flush();
+  const root = new FakeEl("li");
+  const card = new FakeEl("div"); card.classList.add("pf15dv-spell-cast"); root.appendChild(card);
+  spell.onRenderChatMessageHTML({ flags: stub.created[0].flags }, root);
+  const buttons = root.querySelectorAll(".pf15dv-card-button").map(b => b.textContent);
+  assert.deepEqual(buttons.filter(t => t === "PF15DV.Spell.RequestSpellcraft").length, 1);
+  assert.deepEqual(buttons.filter(t => t.startsWith("PF15DV.Spell.Apply")).length, 3);
+  delete globalThis.HTMLElement; delete globalThis.document;
 });

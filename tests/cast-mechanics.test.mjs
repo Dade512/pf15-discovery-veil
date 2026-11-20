@@ -99,3 +99,26 @@ test("applyDamagePlan hands pf1 typed instances", async () => {
   assert.equal(calls[0].opts.instances[2].value, 10);
   assert.deepEqual(calls[0].opts.instances[2].types, ["fire"]);
 });
+
+const healingShared = () => { const s = makeShared(); s.chatAttacks[0].isHealing = true; return s; };
+
+test("healing entries are flagged", () => {
+  assert.equal(m.extractMechanics(makeShared()).attacks[0].isHealing, false);
+  assert.equal(m.extractMechanics(healingShared()).attacks[0].isHealing, true);
+});
+
+test("a healing plan heals", () => {
+  const p = m.damagePlan(m.extractMechanics(healingShared()).attacks[0], "normal");
+  assert.equal(p.value, -8);
+  assert.deepEqual(p.parts.map(x => x.value), [7, 1]);
+});
+
+test("healing has no crit plan", () => {
+  assert.equal(m.damagePlan(m.extractMechanics(healingShared()).attacks[0], "crit"), null);
+});
+
+test("healing lines say healing", () => {
+  const keys = m.mechanicsLines(m.extractMechanics(healingShared()), { typeLabel: id => id, saveLabel: t => t }).map(l => l.key);
+  assert.ok(keys.includes("PF15DV.Spell.MechHealing"));
+  assert.ok(!keys.includes("PF15DV.Spell.MechDamage"));
+});

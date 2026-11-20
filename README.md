@@ -67,11 +67,12 @@ Whispers are private at the table, not from a browser console: Foundry 13 delive
   caster's identity before it casts**. A cast that is cancelled (for example by an item script)
   posts nothing; **Clear** in the Discovery panel also deletes that cast's generic card. A cast that
   posts no chat card (a macro's `chatMessage: false`, or a script call that hides chat) is not
-  masked; pf1 shows nothing for it.
+  masked; pf1 shows no card for it (its dice still roll for GMs only).
 - **GM mechanics (0.7.9):** on the GM's screen the masked card also shows each attack's total and
   d20, a crit threat with its confirm roll, damage with its type, and the save DC when the spell has
   a save type. **Apply**, **Apply ½** and **Apply crit** apply the damage to your controlled
-  tokens the way pf1's own Apply button does (Shift-click opens pf1's Apply Damage dialog). These numbers stay in the GM's private store; the card itself carries none,
+  tokens the way pf1's own Apply button does (Shift-click opens pf1's Apply Damage dialog); a
+  healing spell's Apply heals. These numbers stay in the GM's private store; the card itself carries none,
   and there is no save button (players roll saves from their sheets).
 - **Dice (0.7.9):** a masked cast's Dice So Nice dice roll for GMs only. The dice data still reaches
   every connected client, like a whisper, so it is hidden at the table, not from a browser console.

@@ -97,9 +97,9 @@ export function onPreActionUse(actionUse) {
       scope: game.settings.get(MODULE_ID, SETTINGS.spellMaskScope)
     }) ) return;
     if ( maskedCasts.has(actionUse) ) return;                        // already handled
-    // 0.7.9 D-4: an explicit no-card cast (use({chatMessage:false})) is not
-    // masked. Only an explicit false: an unset value must still mask.
-    if ( actionUse.shared?.chatMessage === false ) return;
+    // A no-card cast (chatMessage false, or a script call's hideChat) is still
+    // tagged here so its dice go GM-only; pf1PreDisplayActionUse then masks
+    // nothing for it (0.7.9 D-4, decided after the script calls have run).
 
     // Tag only (0.7.8): the side effects wait for pf1PreDisplayActionUse.
     maskedCasts.set(actionUse, foundry.utils.randomID());
@@ -268,10 +268,10 @@ export function onRenderChatMessageHTML(message, html) {
     }
 
     const gate = getSpellGate(flag.castId);
-    if ( gate && (gate.state === "masked") && !container.querySelector(`.${CSS.cardButton}`) ) {
+    if ( gate && (gate.state === "masked") && !container.querySelector(`.${CSS.requestButton}`) ) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.classList.add(CSS.cardButton);
+      btn.classList.add(CSS.cardButton, CSS.requestButton);
       btn.textContent = game.i18n.localize("PF15DV.Spell.RequestSpellcraft");
       btn.addEventListener("click", ev => {
         ev.preventDefault(); ev.stopPropagation();
@@ -309,7 +309,7 @@ function buildMechanicsBlock(mech) {
     const row = document.createElement("div");
     row.classList.add(`${CSS.gmMechanics}-buttons`);
     for ( const [mode, key] of buttons ) {
-      if ( (mode === "crit") && !rec.critDamage?.length ) continue;
+      if ( !damagePlan(rec, mode) ) continue;                      // e.g. no crit damage, or healing
       const btn = document.createElement("button");
       btn.type = "button";
       btn.classList.add(CSS.cardButton);

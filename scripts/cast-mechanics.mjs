@@ -14,7 +14,7 @@
 /**
  * @typedef {{total:number, damageType:object|null}} Part
  * @typedef {{attack:{total:number, natural:number|null, isCrit:boolean}|null,
- *            critConfirm:number|null, damage:Part[], critDamage:Part[]}} AttackRec
+ *            critConfirm:number|null, damage:Part[], critDamage:Part[], isHealing:boolean}} AttackRec
  * @typedef {{attacks:AttackRec[], save:{type:string, dc:number}|null}} Mechanics
  */
 
@@ -46,7 +46,8 @@ export function extractMechanics(shared) {
       attack: atk,
       critConfirm: (ca.hasCritConfirm && Number.isFinite(ca.critConfirm?.total)) ? ca.critConfirm.total : null,
       damage,
-      critDamage: parts(ca?.critDamage?.rolls)
+      critDamage: parts(ca?.critDamage?.rolls),
+      isHealing: !!ca.isHealing                 // pf1 ChatAttack#isHealing (chat-attack.mjs:93)
     });
   }
   const save = ((typeof shared?.save === "string") && shared.save && Number.isFinite(shared?.saveDC))
@@ -58,6 +59,8 @@ export function extractMechanics(shared) {
 /**
  * The damage one Apply button sends. "half" floors each instance; "crit" adds
  * the crit-damage instances and flags the hit critical, as pf1's button does.
+ * A healing entry sends a negative value (pf1's button: data-value="-…" when
+ * isHealing, attack-roll.hbs) and has no crit plan.
  * @param {AttackRec} rec
  * @param {"normal"|"half"|"crit"} mode
  * @returns {{value:number, parts:{value:number, damageType:object|null}[], isCritical:boolean}|null}
@@ -66,13 +69,14 @@ export function damagePlan(rec, mode) {
   const damage = rec?.damage ?? [];
   if ( !damage.length ) return null;
   const crit = rec?.critDamage ?? [];
-  if ( (mode === "crit") && !crit.length ) return null;
+  if ( (mode === "crit") && (!crit.length || rec?.isHealing) ) return null;
   const source = (mode === "crit") ? [...damage, ...crit] : damage;
   const out = source.map(p => ({
     value: (mode === "half") ? Math.floor(p.total / 2) : p.total,
     damageType: p.damageType ?? null
   }));
-  return { value: out.reduce((s, p) => s + p.value, 0), parts: out, isCritical: mode === "crit" };
+  const total = out.reduce((s, p) => s + p.value, 0);
+  return { value: rec?.isHealing ? -total : total, parts: out, isCritical: mode === "crit" };
 }
 
 /** Unique, labelled damage-type names across parts, joined with ", ". */
@@ -99,7 +103,7 @@ export function mechanicsLines(mech, { typeLabel, saveLabel }) {
       lines.push({ key: "PF15DV.Spell.MechAttack", data: { n, total: a.attack.total, natural: a.attack.natural ?? "?" } });
       if ( a.attack.isCrit ) lines.push({ key: "PF15DV.Spell.MechCrit", data: { n, confirm: a.critConfirm ?? "?" } });
     }
-    if ( a.damage.length ) lines.push({ key: "PF15DV.Spell.MechDamage", data: { n, total: sum(a.damage), types: typeNames(a.damage, typeLabel) } });
+    if ( a.damage.length ) lines.push({ key: a.isHealing ? "PF15DV.Spell.MechHealing" : "PF15DV.Spell.MechDamage", data: { n, total: sum(a.damage), types: typeNames(a.damage, typeLabel) } });
     if ( a.critDamage.length ) lines.push({ key: "PF15DV.Spell.MechCritDamage", data: { n, total: sum(a.critDamage), types: typeNames(a.critDamage, typeLabel) } });
   });
   if ( mech?.save ) lines.push({ key: "PF15DV.Spell.MechSave", data: { save: saveLabel(mech.save.type), dc: mech.save.dc } });

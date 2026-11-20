@@ -53,6 +53,7 @@
   "PF15DV.Spell.MechAttack": "Attack {n}: {total} (d20 {natural})",
   "PF15DV.Spell.MechCrit": "Attack {n}: threat, confirm {confirm}",
   "PF15DV.Spell.MechDamage": "Damage {n}: {total} {types}",
+  "PF15DV.Spell.MechHealing": "Healing {n}: {total} {types}",
   "PF15DV.Spell.MechCritDamage": "Crit damage {n}: +{total} {types}",
   "PF15DV.Spell.MechSave": "{save} DC {dc}",
   "PF15DV.Spell.ApplyDamage": "Apply",
