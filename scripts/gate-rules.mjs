@@ -60,7 +60,7 @@ export function isMaskableCaster({ hasPlayerOwner, disposition, scope }) {
  * The caster's token disposition, or null. Tries the action's token, the
  * actor's synthetic token, the actor's first active token on the viewed scene,
  * then the prototype token. A placeable or a document is accepted.
- * // ⚠️ UNCONFIRMED PATH — verify: pf1 11.11 ActionUse#token shape (probe R2).
+ * Confirmed (0.7.8 R2): pf1 11.11 actionUse.token is the placeable; its .document is read.
  * @param {object|null} actionUse
  * @param {object|null} actor
  * @returns {number|null}
@@ -75,4 +75,30 @@ export function casterDisposition(actionUse, actor) {
     if ( Number.isFinite(d) ) return d;
   }
   return null;
+}
+
+/** Roll modes that already keep a roll off players' screens. */
+const PRIVATE_ROLL_MODES = ["gmroll", "blindroll", "selfroll"];
+
+/**
+ * The roll mode a masked cast uses (0.7.9, TD-47 D-3). pf1 plays a cast's
+ * Dice So Nice dice with the cast's roll mode before pf1PreDisplayActionUse,
+ * so a public mode shows every player the dice of a spell whose card we hide.
+ * A mode the GM already made private is kept, never widened.
+ * @param {string|undefined} current
+ * @returns {string}
+ */
+export function maskedRollMode(current) {
+  return PRIVATE_ROLL_MODES.includes(current) ? current : "gmroll";
+}
+
+/**
+ * Whether pf1 will post a chat card for this cast: pf1 11.11's own check in
+ * ActionUse#postMessage (action-use.mjs:1472), which runs AFTER
+ * pf1PreDisplayActionUse. A cast with no card is not masked (0.7.9 D-4).
+ * @param {object|undefined} shared  pf1 ActionUse#shared
+ * @returns {boolean}
+ */
+export function castPostsCard(shared) {
+  return !!shared?.chatMessage && !shared?.scriptData?.hideChat;
 }

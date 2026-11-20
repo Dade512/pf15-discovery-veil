@@ -65,3 +65,18 @@ test("casterDisposition: nothing gives null", () => {
   assert.equal(rules.casterDisposition({}, {}), null);
   assert.equal(rules.casterDisposition(null, null), null);
 });
+
+test("maskedRollMode turns public into gmroll", () => {
+  for ( const mode of ["publicroll", "roll", undefined] ) assert.equal(rules.maskedRollMode(mode), "gmroll");
+});
+
+test("maskedRollMode keeps blind and self", () => {
+  for ( const mode of ["blindroll", "selfroll", "gmroll"] ) assert.equal(rules.maskedRollMode(mode), mode);
+});
+
+test("castPostsCard follows pf1's post check", () => {
+  assert.equal(rules.castPostsCard({ chatMessage: true, scriptData: {} }), true);
+  assert.equal(rules.castPostsCard({ chatMessage: false }), false);
+  assert.equal(rules.castPostsCard({ chatMessage: true, scriptData: { hideChat: true } }), false);
+  assert.equal(rules.castPostsCard(undefined), false);
+});
