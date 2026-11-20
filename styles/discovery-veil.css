@@ -38,6 +38,22 @@
   margin-top: 2px;
 }
 
+/* 0.7.9 TD-47: GM-only cast mechanics (attack/damage/save + Apply buttons). */
+.pf15dv-spell-cast .pf15dv-gm-mechanics {
+  font-style: normal;
+  font-size: 0.85em;
+  color: #6a1b9a;
+  border-top: 1px dashed #b39ddb;
+  padding-top: 3px;
+  margin-top: 2px;
+}
+
+.pf15dv-spell-cast .pf15dv-gm-mechanics-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
 .pf15dv-spell-cast .pf15dv-card-button {
   margin-top: 4px;
   width: auto;

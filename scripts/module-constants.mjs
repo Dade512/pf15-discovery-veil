@@ -27,6 +27,7 @@ export const CSS = {
   spellCast: "pf15dv-spell-cast",
   cardButton: "pf15dv-card-button",
   gmNote: "pf15dv-gm-note",
+  gmMechanics: "pf15dv-gm-mechanics",
   spellEffect: "pf15dv-spell-effect",
   panel: "pf15dv-panel"
 };

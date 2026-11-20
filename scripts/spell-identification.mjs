@@ -31,7 +31,8 @@ import {
   clearSpellGate, clearHiddenSpellIdentity
 } from "./state.mjs";
 import { openSpellcraftRequestDialog } from "./spellcraft-requests.mjs";
-import { isMaskableCaster, casterDisposition } from "./gate-rules.mjs";
+import { isMaskableCaster, casterDisposition, maskedRollMode, castPostsCard } from "./gate-rules.mjs";
+import { extractMechanics, damagePlan, mechanicsLines, applyDamagePlan } from "./cast-mechanics.mjs";
 
 /** Debug log, gated on the module's debugLogging client setting. */
 function dlog(...args) {
@@ -96,9 +97,15 @@ export function onPreActionUse(actionUse) {
       scope: game.settings.get(MODULE_ID, SETTINGS.spellMaskScope)
     }) ) return;
     if ( maskedCasts.has(actionUse) ) return;                        // already handled
+    // 0.7.9 D-4: an explicit no-card cast (use({chatMessage:false})) is not
+    // masked. Only an explicit false: an unset value must still mask.
+    if ( actionUse.shared?.chatMessage === false ) return;
 
     // Tag only (0.7.8): the side effects wait for pf1PreDisplayActionUse.
     maskedCasts.set(actionUse, foundry.utils.randomID());
+    // 0.7.9 D-3: pf1 plays the cast's Dice So Nice dice with this roll mode
+    // before pf1PreDisplayActionUse; keep them off players' screens.
+    if ( actionUse.shared ) actionUse.shared.rollMode = maskedRollMode(actionUse.shared.rollMode);
   } catch ( err ) {
     console.error(`${MODULE_ID} | onPreActionUse error`, err);
   }
@@ -116,6 +123,12 @@ export function onPreActionUse(actionUse) {
  */
 export function onPreDisplayActionUse(actionUse) {
   if ( !maskedCasts.has(actionUse) ) return;
+  // 0.7.9 D-4: pf1 checks chatMessage/hideChat only AFTER this hook; when it
+  // will post nothing, mask nothing (a script call can set hideChat late).
+  if ( !castPostsCard(actionUse.shared) ) {
+    maskedCasts.delete(actionUse);
+    return;
+  }
   const castId = maskedCasts.get(actionUse);
   if ( postedCasts.has(actionUse) ) return false;
   postedCasts.add(actionUse);
@@ -130,7 +143,8 @@ export function onPreDisplayActionUse(actionUse) {
       spellItemUuid: item.uuid,
       casterActorUuid: actor.uuid,
       spellLevel,
-      dc: SPELL_ID_DC_BASE + spellLevel
+      dc: SPELL_ID_DC_BASE + spellLevel,
+      mechanics: extractMechanics(actionUse.shared)            // 0.7.9 TD-47: GM-only
     };
     const casterName = actor.name;
     dlog("masking spell cast", { castId, spellLevel, dc: identity.dc });
@@ -166,8 +180,8 @@ export function onPreDisplayActionUse(actionUse) {
  * spell resolves as an attack, and whether it deals damage. It NEVER exposes the
  * spell name, school, save DC, damage type/amount, or description — those remain
  * the Spellcraft reward / GM secret. The disclosed facts narrow but do not
- * reveal the spell, which is why this is off by default and the setting hint
- * states the trade-off.
+ * reveal the spell, which is why the setting hint states the trade-off (on by
+ * default since 0.7.8).
  * @param {object} actionUse
  * @returns {string}
  */
@@ -249,6 +263,9 @@ export function onRenderChatMessageHTML(message, html) {
         { name: identity.spellName ?? "?", school: sl || "—", dc: identity.dc ?? "?" });
       container.appendChild(note);
     }
+    if ( identity?.mechanics && !container.querySelector(`.${CSS.gmMechanics}`) ) {
+      container.appendChild(buildMechanicsBlock(identity.mechanics));
+    }
 
     const gate = getSpellGate(flag.castId);
     if ( gate && (gate.state === "masked") && !container.querySelector(`.${CSS.cardButton}`) ) {
@@ -265,6 +282,48 @@ export function onRenderChatMessageHTML(message, html) {
   } catch ( err ) {
     console.error(`${MODULE_ID} | onRenderChatMessageHTML error`, err);
   }
+}
+
+/**
+ * The GM-only mechanics block (0.7.9, TD-47 D-2): attack, damage and save lines
+ * plus Apply / Apply ½ / Apply crit buttons per damaging attack. DOM only; the
+ * numbers come from the active GM's private store, never the message document.
+ * @param {object} mech  stored Mechanics record (cast-mechanics.mjs)
+ * @returns {HTMLElement}
+ */
+function buildMechanicsBlock(mech) {
+  const block = document.createElement("div");
+  block.classList.add(CSS.gmMechanics);
+  const labels = {
+    typeLabel: id => globalThis.pf1?.registry?.damageTypes?.get?.(id)?.name ?? id,
+    saveLabel: t => globalThis.pf1?.config?.savingThrows?.[t] ?? t
+  };
+  for ( const { key, data } of mechanicsLines(mech, labels) ) {
+    const line = document.createElement("div");
+    line.textContent = game.i18n.format(key, data);
+    block.appendChild(line);
+  }
+  const buttons = [["normal", "PF15DV.Spell.ApplyDamage"], ["half", "PF15DV.Spell.ApplyHalf"], ["crit", "PF15DV.Spell.ApplyCrit"]];
+  for ( const rec of (mech.attacks ?? []) ) {
+    if ( !rec.damage?.length ) continue;
+    const row = document.createElement("div");
+    row.classList.add(`${CSS.gmMechanics}-buttons`);
+    for ( const [mode, key] of buttons ) {
+      if ( (mode === "crit") && !rec.critDamage?.length ) continue;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.classList.add(CSS.cardButton);
+      btn.textContent = game.i18n.localize(key);
+      btn.addEventListener("click", ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        applyDamagePlan(damagePlan(rec, mode))
+          .catch(err => console.error(`${MODULE_ID} | apply damage failed`, err));
+      });
+      row.appendChild(btn);
+    }
+    block.appendChild(row);
+  }
+  return block;
 }
 
 /* ---------- reveal (active-GM authority) ---------- */

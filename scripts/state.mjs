@@ -19,7 +19,8 @@ import { MODULE_ID, SETTINGS, SCHEMA_VERSION } from "./module-constants.mjs";
 /** Keys that must NEVER appear anywhere in the replicated public registry. */
 export const FORBIDDEN_PUBLIC_KEYS = new Set([
   "dc", "spellName", "spellId", "spellItemUuid", "casterActorUuid",
-  "originalChatData", "gmNotes", "trapName", "description", "casterPlans"
+  "originalChatData", "gmNotes", "trapName", "description", "casterPlans",
+  "mechanics"                                           // 0.7.9 TD-47: GM-only cast numbers
 ]);
 
 /* ---------- world id ---------- */
@@ -531,7 +532,8 @@ export async function clearSpellGate(castId) {
  * forbidden on any public surface (assertNoSecrets / FORBIDDEN_PUBLIC_KEYS).
  * @param {string} castId
  * @param {{spellName:string, school?:string, spellItemUuid?:string,
- *          casterActorUuid?:string, spellLevel?:number, dc?:number}} identity
+ *          casterActorUuid?:string, spellLevel?:number, dc?:number,
+ *          mechanics?:object}} identity  mechanics: 0.7.9 cast numbers (cast-mechanics.mjs)
  * @returns {Promise<boolean>}
  */
 export async function setHiddenSpellIdentity(castId, identity = {}) {
@@ -543,7 +545,9 @@ export async function setHiddenSpellIdentity(castId, identity = {}) {
       spellItemUuid: identity.spellItemUuid ?? null,
       casterActorUuid: identity.casterActorUuid ?? null,
       spellLevel: Number.isFinite(identity.spellLevel) ? identity.spellLevel : null,
-      dc: Number.isFinite(identity.dc) ? identity.dc : null
+      dc: Number.isFinite(identity.dc) ? identity.dc : null,
+      mechanics: (identity.mechanics && typeof identity.mechanics === "object")
+        ? foundry.utils.deepClone(identity.mechanics) : null
     };
     return true;
   }, "setHiddenSpellIdentity");
