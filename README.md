@@ -1,6 +1,6 @@
 # PF1.5 Discovery Veil
 
-Skill-gated discovery tools for Foundry VTT `13.350` + PF1.
+Skill-gated discovery tools for Foundry VTT `13.350` or later (verified on `13.351`) + PF1.
 
 Two related table workflows:
 
@@ -20,7 +20,7 @@ https://github.com/Dade512/pf15-discovery-veil/releases/latest/download/module.j
 
 This always installs the latest release, and the same URL drives Foundry's built-in update check, so future versions update in place.
 
-**Requirements:** Foundry VTT `13.350`, the Pathfinder 1 (`pf1`) system, and the [**socketlib**](https://foundryvtt.com/packages/socketlib) module (used for the Perception/Spellcraft roll relays — install and enable it too).
+**Requirements:** Foundry VTT `13.350` or later (verified on `13.351`), the Pathfinder 1 (`pf1`) system, and the [**socketlib**](https://foundryvtt.com/packages/socketlib) module (used for the Perception/Spellcraft roll relays — install and enable it too).
 
 After installing, enable **PF1.5 Discovery Veil** in **Manage Modules**, then turn on the **"Enable Perception Reveals"** and/or **"Enable Spellcraft Reveals"** settings (both off by default).
 
@@ -44,6 +44,7 @@ Whispers are private at the table, not from a browser console: Foundry 13 delive
 - On an undetected token the GM gets a **"Request a Perception check"** control: set a hidden DC (kept on the GM client only) and pick which players to ask.
 - Each chosen player gets a prompt to roll Perception. Their roll total is relayed to the active GM, who compares it to the hidden DC and — on success — marks them spotted (`source: perception`). The DC never leaves the GM, and there is no automatic global reveal.
 - Eligibility: any player who owns a player-owned character (assigned or merely owned — Perception is usable untrained).
+- **One roll per request (0.7.9):** each request carries a one-use id for that player and that target. A roll answers only the request it came from; a result nobody asked for is ignored. The player sees "The GM received your roll." (never pass or fail). Open requests live in the GM's browser memory, so if the GM reloads, request again.
 
 ## Spell Identification (0.5.0)
 
@@ -64,7 +65,18 @@ Whispers are private at the table, not from a browser console: Foundry 13 delive
 - **Limits:** masking happens only when a **GM's client** performs the cast. The generic card's
   speaker is the **true caster**, so pair this module with PF1.5 Identity Mask and **mask an unseen
   caster's identity before it casts**. A cast that is cancelled (for example by an item script)
-  posts nothing; **Clear** in the Discovery panel also deletes that cast's generic card.
+  posts nothing; **Clear** in the Discovery panel also deletes that cast's generic card. A cast that
+  posts no chat card (a macro's `chatMessage: false`, or a script call that hides chat) is not
+  masked; pf1 shows nothing for it.
+- **GM mechanics (0.7.9):** on the GM's screen the masked card also shows each attack's total and
+  d20, a crit threat with its confirm roll, damage with its type, and the save DC when the spell has
+  a save type. **Apply**, **Apply ½** and **Apply crit** open pf1's Apply Damage dialog for your
+  controlled tokens. These numbers stay in the GM's private store; the card itself carries none,
+  and there is no save button (players roll saves from their sheets).
+- **Dice (0.7.9):** a masked cast's Dice So Nice dice roll for GMs only. The dice data still reaches
+  every connected client, like a whisper, so it is hidden at the table, not from a browser console.
+- **Spellcraft requests (0.7.9)** use the same one-use request ids and "The GM received your roll."
+  notice as Perception requests.
 - Enable the **"Enable Spellcraft Reveals"** setting (off by default).
 - **Stripped public effect (0.7.0; on by default since 0.7.8):** **"Show Masked Spell Effect"** also shows
   players a non-identifying effect line on the generic card — the **save type**
@@ -88,8 +100,24 @@ Whispers are private at the table, not from a browser console: Foundry 13 delive
 
 ## Current Status
 
-Version `0.7.8` (Foundry `13.351` / PF1 `11.11`):
+Version `0.7.9` (Foundry `13.351` / PF1 `11.11`):
 
+- **Whose Roll It Was (0.7.9)** — the masked cast's numbers for the GM, and roll requests that
+  answer only themselves:
+  - **GM mechanics (TD-47):** the masked card shows the GM each attack, its damage and type, a
+    crit threat, and the save DC (only when the spell has a save type), with **Apply**, **Apply ½**
+    and **Apply crit** buttons through pf1's own Apply Damage dialog. Nothing new reaches players.
+  - **Dice (TD-47):** a masked cast's Dice So Nice dice now roll for GMs only; before, every player
+    watched them, coloured by damage type. A roll mode the GM already made blind or self is kept.
+  - **No-card casts:** a cast that posts no chat card is no longer masked (it used to post a
+    generic card anyway).
+  - **Roll requests (TD-10):** each request carries a one-use id for its player and target, so a
+    result nobody asked for is ignored and one roll can no longer answer two requests. The roll's
+    total is read from the roll itself (the 800 ms capture window is gone). The player sees "The GM
+    received your roll.", or "That roll request is no longer open" after a GM reload or a
+    re-request.
+  - **Docs/manifest:** the manifest's `verified` is now `13.351`; two stale code comments fixed;
+    `.sh` files are checked out with LF endings.
 - **What the Dark Rolls (0.7.8)** — ambush and cast-lifecycle fixes from the 2026-11-16 facts check:
   - **Initiative card (TD-45):** pf1's initiative dialog posted an undetected creature's roll
     **publicly under its true name**. It is now made GM-only automatically.
