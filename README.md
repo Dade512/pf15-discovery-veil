@@ -70,8 +70,8 @@ Whispers are private at the table, not from a browser console: Foundry 13 delive
   masked; pf1 shows nothing for it.
 - **GM mechanics (0.7.9):** on the GM's screen the masked card also shows each attack's total and
   d20, a crit threat with its confirm roll, damage with its type, and the save DC when the spell has
-  a save type. **Apply**, **Apply ½** and **Apply crit** open pf1's Apply Damage dialog for your
-  controlled tokens. These numbers stay in the GM's private store; the card itself carries none,
+  a save type. **Apply**, **Apply ½** and **Apply crit** apply the damage to your controlled
+  tokens the way pf1's own Apply button does (Shift-click opens pf1's Apply Damage dialog). These numbers stay in the GM's private store; the card itself carries none,
   and there is no save button (players roll saves from their sheets).
 - **Dice (0.7.9):** a masked cast's Dice So Nice dice roll for GMs only. The dice data still reaches
   every connected client, like a whisper, so it is hidden at the table, not from a browser console.
@@ -106,7 +106,8 @@ Version `0.7.9` (Foundry `13.351` / PF1 `11.11`):
   answer only themselves:
   - **GM mechanics (TD-47):** the masked card shows the GM each attack, its damage and type, a
     crit threat, and the save DC (only when the spell has a save type), with **Apply**, **Apply ½**
-    and **Apply crit** buttons through pf1's own Apply Damage dialog. Nothing new reaches players.
+    and **Apply crit** buttons that work like pf1's own Apply button (Shift-click for its dialog).
+    Nothing new reaches players.
   - **Dice (TD-47):** a masked cast's Dice So Nice dice now roll for GMs only; before, every player
     watched them, coloured by damage type. A roll mode the GM already made blind or self is kept.
   - **No-card casts:** a cast that posts no chat card is no longer masked (it used to post a

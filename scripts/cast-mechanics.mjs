@@ -108,8 +108,9 @@ export function mechanicsLines(mech, { typeLabel, saveLabel }) {
 
 /**
  * Send a damage plan through pf1's own apply path (brief §6 P3). With no
- * targets pf1 uses the controlled tokens; interactive:true opens pf1's Apply
- * Damage dialog, which handles DR/ER.
+ * targets pf1 uses the controlled tokens. Same options as pf1's own Apply
+ * button (utils/chat.mjs): it applies directly, and Shift (pf1.skipConfirmPrompt)
+ * opens pf1's Apply Damage dialog instead (actor-pf.mjs applyDamage, 0.7.9 R2).
  * @param {{value:number, parts:{value:number, damageType:object|null}[], isCritical:boolean}} plan
  * @returns {Promise<unknown>}
  */
