@@ -3,8 +3,9 @@
  *
  * Thin configuration over the shared `createSkillBroker` factory
  * (`skill-request.mjs`). The flow itself — GM request dialog with a hidden DC,
- * socketlib dispatch to chosen eligible players, per-client roll capture from
- * pf1ActorRollSkill, and active-GM adjudication against the hidden DC — lives in
+ * socketlib dispatch to chosen eligible players with one-use request ids, the
+ * roll read from rollSkill()'s return value (0.7.9), and active-GM
+ * adjudication against the hidden DC — lives in
  * the factory. Only the Perception-specific differences are described here.
  *
  * Eligibility: any non-GM user who owns a player-owned PC (assigned or owned).
@@ -15,7 +16,7 @@
 
 import { SOCKET_TYPES } from "./module-constants.mjs";
 import {
-  getPerceptionGate, getHiddenPerceptionDC, setHiddenPerceptionDC, markSpotted
+  getPerceptionGate, getHiddenPerceptionDC, setHiddenPerceptionDC, markSpotted, perceptionKey
 } from "./state.mjs";
 import { syncPerceptionTokens } from "./rendering.mjs";
 import { createSkillBroker } from "./skill-request.mjs";
@@ -53,6 +54,7 @@ const broker = createSkillBroker({
   requestPayload: (t) => ({ sceneId: t.sceneId, tokenId: t.tokenId }),
   readTarget: (p) => ({ sceneId: p.sceneId, tokenId: p.tokenId }),
   targetValid: (t) => !!t.sceneId && !!t.tokenId,
+  targetKey: (t) => perceptionKey(t.sceneId, t.tokenId),
 
   onSuccess: async (t, senderId, meta) => {
     await markSpotted(t.sceneId, t.tokenId, senderId, meta);

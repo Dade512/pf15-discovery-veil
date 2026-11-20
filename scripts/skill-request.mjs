@@ -27,12 +27,22 @@
  * regular functions, not arrows: socketlib invokes them as
  * `fn.call({socketdata:{userId}}, payload)`, and the verified sender is read from
  * `this.socketdata.userId` — an arrow would lose that binding.
+ *
+ * 0.7.9 (TD-10): every request carries a one-use `requestId` minted per
+ * (invited user, target) on the active GM (request-tokens.mjs); a result is
+ * honoured only for its own open id, from its own invited sender, for its own
+ * target (E-2a). The player reads the total from `actor.rollSkill()`'s return
+ * value, so one roll answers only the request that prompted it (E-2b). The GM
+ * handler resolves "received" | "stale" | "rejected" and the player sees a
+ * neutral notice, never pass or fail (E-10).
  */
 
 import { MODULE_ID, SETTINGS } from "./module-constants.mjs";
 import { isActiveGMClient } from "./state.mjs";
+import { createRequestLedger } from "./request-tokens.mjs";
 
-const DialogV2 = foundry.applications.api.DialogV2;
+/** DialogV2, read at call time (not import time). */
+const dialogs = () => foundry.applications.api.DialogV2;
 
 /**
  * Shared socketlib module socket, registered once and memoized. Both brokers
@@ -81,12 +91,16 @@ function dlog(...args) {
  * @param {(target:any) => object} config.requestPayload  target -> socket payload fields.
  * @param {(payload:object) => any} config.readTarget     socket payload -> target.
  * @param {(target:any) => boolean} config.targetValid    guard a relayed target.
+ * @param {(target:any) => string}  config.targetKey      target -> request-ledger key (0.7.9).
  * @param {(target:any, senderId:string, meta:object) => Promise<void>} config.onSuccess
  * @param {object}   config.i18n            Localization keys (see usage below).
  * @returns {{registerSocket:Function, openRequestDialog:Function, actorForUser:Function, eligibleUsers:Function}}
  */
 export function createSkillBroker(config) {
   const { skillKey, icon, socketTypes, i18n } = config;
+
+  /** Open request ids, in memory on the active GM (0.7.9, Q7). */
+  const ledger = createRequestLedger(() => foundry.utils.randomID(16));
 
   /* ---------- eligibility ---------- */
 
@@ -153,7 +167,7 @@ export function createSkillBroker(config) {
       `<div class="form-group"><label>${game.i18n.localize(i18n.dcLabel)}</label>` +
       `<input type="number" name="dc" value="${dcVal}" min="0" step="1"></div><hr>${rows}`;
 
-    const result = await DialogV2.wait({
+    const result = await dialogs().wait({
       window: { title: i18n.requestTitle, icon },
       classes: ["pf15dv-dialog"],
       position: { width: 440 },
@@ -190,7 +204,12 @@ export function createSkillBroker(config) {
     if ( !proceed ) return;
     if ( !result.userIds.length ) return;
     dlog(`executeForUsers ${socketTypes.request}`, { userIds: result.userIds, target });
-    dvSocket.executeForUsers(socketTypes.request, result.userIds, config.requestPayload(target));
+    // One send per user, each with its own one-use id (0.7.9 D-5).
+    const key = config.targetKey(target);
+    for ( const uid of result.userIds ) {
+      dvSocket.executeForUsers(socketTypes.request, [uid],
+        { ...config.requestPayload(target), requestId: ledger.mint(uid, key) });
+    }
     ui.notifications?.info(game.i18n.format(i18n.requestSent, { count: result.userIds.length }));
   }
 
@@ -210,7 +229,7 @@ export function createSkillBroker(config) {
       ui.notifications?.warn(game.i18n.localize(i18n.noCharacter));
       return;
     }
-    const proceed = await DialogV2.confirm({
+    const proceed = await dialogs().confirm({
       window: { title: i18n.rollPromptTitle, icon },
       classes: ["pf15dv-dialog"],
       position: { width: 360 },
@@ -218,48 +237,46 @@ export function createSkillBroker(config) {
       rejectClose: false
     });
     if ( !proceed ) return;
-    await rollAndRelay(actor, target);
+    await rollAndRelay(actor, target, payload.requestId);
   }
 
   /**
-   * Roll `skillKey` for `actor` on this client, capture the total from the
-   * pf1ActorRollSkill payload, and relay ids + total to the GM via socketlib.
+   * Roll `skillKey` for `actor` on this client and relay this request's id +
+   * the total to the GM via socketlib. The total is read from rollSkill()'s
+   * return value (the ChatMessage it created; undefined when cancelled), so a
+   * roll answers only the request that prompted it (0.7.9 D-6).
    * @param {object} actor
    * @param {any} target
+   * @param {string} requestId
    */
-  async function rollAndRelay(actor, target) {
-    let done = false;
-    const handler = (rolledActor, chatMessage, skillId) => {
-      if ( done || (skillId !== skillKey) || (rolledActor?.id !== actor.id) ) return;
-      done = true;
-      const total = chatMessage?.rolls?.[0]?.total;
-      dlog(`captured ${config.label} roll`, { actor: actor.name, total });
-      if ( !Number.isFinite(total) ) return;
-      dvSocket.executeAsGM(socketTypes.result, {
-        ...config.requestPayload(target),
-        userId: game.user.id,
-        actorId: actor.id,
-        actorName: actor.name,
-        total
-      }).catch(err => {
-        console.error(`${MODULE_ID} | ${config.label} result relay failed`, err);
-        ui.notifications?.warn(game.i18n.format("PF15DV.Notify.ResultRelayFailed", { label: config.label }));
-      });
-    };
-    Hooks.on("pf1ActorRollSkill", handler);
+  async function rollAndRelay(actor, target, requestId) {
+    let total;
     try {
-      await actor.rollSkill(skillKey);
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const msg = await actor.rollSkill(skillKey);
+      total = msg?.rolls?.[0]?.total;
     } catch ( err ) {
       console.error(`${MODULE_ID} | ${config.label} roll failed`, err);
-    } finally {
-      Hooks.off("pf1ActorRollSkill", handler);
+      return;
+    }
+    dlog(`rolled ${config.label}`, { actor: actor.name, total });
+    if ( !Number.isFinite(total) ) return;                         // cancelled: relay nothing
+    try {
+      const status = await dvSocket.executeAsGM(socketTypes.result,
+        { ...config.requestPayload(target), requestId, total });
+      if ( status === "received" ) ui.notifications?.info(game.i18n.localize("PF15DV.Notify.RollReceived"));
+      else if ( (status === "stale") || (status === "rejected") ) {
+        ui.notifications?.warn(game.i18n.localize("PF15DV.Notify.RequestClosed"));
+      }
+    } catch ( err ) {
+      console.error(`${MODULE_ID} | ${config.label} result relay failed`, err);
+      ui.notifications?.warn(game.i18n.format("PF15DV.Notify.ResultRelayFailed", { label: config.label }));
     }
   }
 
   /* ---------- GM: adjudicate (via socketlib executeAsGM) ---------- */
 
   // Regular function (not arrow): socketlib binds the verified sender on `this`.
+  // Resolves "received" | "stale" | "rejected" to the player (0.7.9 D-7).
   async function onResult(payload = {}) {
     // Trust socketlib's verified sender (this.socketdata.userId), NEVER the
     // payload's claimed userId/actor: the result is honored only for the actual
@@ -272,14 +289,17 @@ export function createSkillBroker(config) {
     const actor = sender ? actorForUser(sender) : null;
     const target = config.readTarget(payload);
     const total = payload.total;
-    if ( !actor || !config.targetValid(target) || !Number.isFinite(total) ) return;
+    if ( !actor || !config.targetValid(target) || !Number.isFinite(total) ) return "rejected";
     dlog(`on${config.label}Result (socketlib)`, { ...payload, userId: sender.id, total, activeGM: isActiveGMClient() });
+    // Only a request this GM sent to this sender for this target (0.7.9 D-5).
+    const redeemed = ledger.redeem(payload.requestId, sender.id, config.targetKey(target));
+    if ( redeemed !== "ok" ) return redeemed;
     const gate = config.gate.get(target);
-    if ( !gate || (gate.state !== config.gate.activeState) ) return;
+    if ( !gate || (gate.state !== config.gate.activeState) ) return "stale";
     const dc = config.dc.get(target);                          // null unless active GM
     if ( dc === null ) {
       ui.notifications?.info(game.i18n.format(i18n.resultNoDC, { actor: actor.name, total }));
-      return;
+      return "received";
     }
     if ( total >= dc ) {
       const round = game.combat?.round ?? null;
@@ -288,6 +308,7 @@ export function createSkillBroker(config) {
     } else {
       ui.notifications?.info(game.i18n.format(i18n.resultFail, { actor: actor.name, total }));
     }
+    return "received";
   }
 
   /* ---------- socketlib registration ---------- */

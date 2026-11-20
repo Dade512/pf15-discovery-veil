@@ -39,6 +39,8 @@
   "PF15DV.Notify.ResultNoDC": "{actor} rolled Perception ({total}). No hidden DC set — use Manage Spotted to adjudicate.",
   "PF15DV.Notify.ResultSuccess": "{actor} succeeded (rolled {total}) and now personally sees the creature.",
   "PF15DV.Notify.ResultFail": "{actor} rolled {total} and did not spot the creature.",
+  "PF15DV.Notify.RollReceived": "The GM received your roll.",
+  "PF15DV.Notify.RequestClosed": "That roll request is no longer open. Ask the GM to request again.",
   "PF15DV.Notify.ResultRelayFailed": "Your {label} roll may not have reached the GM — you may need to try again.",
   "PF15DV.Spell.GenericLabel": "A spell is being cast.",
   "PF15DV.Spell.EffectPrefix": "Effect: {effects}",

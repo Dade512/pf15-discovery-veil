@@ -50,6 +50,7 @@ const broker = createSkillBroker({
   requestPayload: (t) => ({ castId: t }),
   readTarget: (p) => p.castId,
   targetValid: (t) => !!t,
+  targetKey: (t) => t,
 
   onSuccess: async (t, senderId, meta) => {
     await markIdentified(t, senderId, meta);

@@ -4,7 +4,19 @@
  * foundry.utils + a DialogV2 placeholder (skill-request.mjs reads it at import),
  * ChatMessage.implementation spies and CONST.TOKEN_DISPOSITIONS. pf1 stays
  * undefined.
+ *
+ * 0.7.9: a socketlib stub (one module-level socket, because skill-request.mjs
+ * memoizes the first one it is given), notification capture in `notes`
+ * ({level, key}), and game.actors = [].
  */
+const socket = {
+  handlers: {},
+  sent: [],
+  register(name, fn) { socket.handlers[name] = fn; },
+  executeForUsers(type, userIds, payload) { socket.sent.push({ type, userIds: [...userIds], payload: structuredClone(payload) }); },
+  executeAsGM: async (type, payload) => socket.handlers[type].call({ socketdata: { userId: game.user.id } }, structuredClone(payload))
+};
+
 export function installStub({
   isGM = true, userId = "gm", activeGMId = "gm", registry = {}, settings = {}, messages = []
 } = {}) {
@@ -18,6 +30,8 @@ export function installStub({
   const created = [];
   const deleted = [];
   const updates = [];
+  const notes = [];
+  socket.sent = [];
   const users = [
     { id: "gm", name: "gm", isGM: true },
     { id: "u1", name: "u1", isGM: false },
@@ -30,6 +44,7 @@ export function installStub({
     users,
     world: { id: "w1" },
     messages,
+    actors: [],
     settings: {
       get: (_module, key) => structuredClone(store[key]),
       // Commits after a tick, like a real server round-trip, so same-tick races show.
@@ -37,7 +52,9 @@ export function installStub({
     },
     i18n: { localize: k => k, format: k => k }
   };
-  globalThis.ui = { notifications: { warn: () => {}, error: () => {}, info: () => {} } };
+  const note = level => key => { notes.push({ level, key }); };
+  globalThis.ui = { notifications: { warn: note("warn"), error: note("error"), info: note("info") } };
+  globalThis.socketlib = { registerModule: () => socket };
   globalThis.foundry = {
     utils: { deepClone: v => structuredClone(v), randomID: () => `cast${++ids}` },
     applications: { api: { DialogV2: {} } }
@@ -53,6 +70,6 @@ export function installStub({
   return {
     writes: () => writes,
     registry: () => structuredClone(store.publicRegistry),
-    created, deleted, updates
+    created, deleted, updates, notes, socket
   };
 }
